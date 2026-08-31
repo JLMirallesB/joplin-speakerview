@@ -363,6 +363,11 @@
 
 	/* ---------------------------------------------------------------- arranque */
 
+	// Si esta ventana se abrió con token (desde la red), el enlace a la
+	// biblioteca tiene que llevarlo también o dará 403.
+	var tk = new URLSearchParams(location.search).get('t');
+	if (tk) $('library').href = '/?t=' + encodeURIComponent(tk);
+
 	$('deck-title').textContent = DECK.title;
 	$('deck-notebook').textContent = DECK.notebook || '';
 	document.title = DECK.title + ' — speaker view';

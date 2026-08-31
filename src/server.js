@@ -130,7 +130,9 @@ export function createServer({ root, decks, fontDir = null, themeCss = null, fit
 				return sendJSON(res, 200, { url: target, svg });
 			}
 
-			if (p === '/api/library') return sendJSON(res, 200, { decks: decks.map(publicDeck) });
+			// root sirve para que el lanzador sepa si el servidor que ya está
+			// vivo está sirviendo la misma carpeta que se acaba de elegir.
+			if (p === '/api/library') return sendJSON(res, 200, { root, decks: decks.map(publicDeck) });
 
 			let m;
 			if ((m = /^\/present\/([A-Za-z0-9_-]+)$/.exec(p))) {

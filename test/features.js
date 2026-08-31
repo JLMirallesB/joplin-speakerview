@@ -155,10 +155,19 @@ try {
 	const html = path.join(fixture, 'FORMACIONES', 'Pla Millora', 'Mod 1', '1.2 ▶️ Presentación (ES).presentation.html');
 	const before = await fs.stat(html);
 	await fs.utimes(html, new Date(), new Date());
-	await sleep(2500);
 
-	const trasRecarga = await deck.eval(`(function(){var t=[].slice.call(document.querySelectorAll('.reveal .slides > section'));
+	// Recargar cuesta lo suyo: el bundle son 1,1 MB y hay 53 diapositivas que
+	// reconstruir. Se espera por condición, no por reloj.
+	const posicion = async () => deck.eval(`(function(){
+		var t=[].slice.call(document.querySelectorAll('.reveal .slides > section'));
 		return t.indexOf(document.querySelector('.reveal .slides > section.present'));})()`).catch(() => -1);
+
+	let trasRecarga = -1;
+	for (let i = 0; i < 60; i++) {
+		await sleep(500);
+		trasRecarga = await posicion();
+		if (trasRecarga === 21) break;
+	}
 	check('tras recargar, vuelve a la misma diapositiva', trasRecarga === 21, `h=${trasRecarga}`);
 	check('el fichero no se ha modificado', (await fs.stat(html)).size === before.size);
 

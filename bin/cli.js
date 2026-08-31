@@ -117,7 +117,7 @@ try {
 
 	console.log(`\n  joplin-speakerview`);
 	console.log(`  biblioteca   ${root}`);
-	console.log(`  encontradas  ${decks.length} presentación${decks.length === 1 ? '' : 'es'}`);
+	console.log(`  encontradas  ${decks.length} ${decks.length === 1 ? 'presentación' : 'presentaciones'}`);
 	const nFonts = await countFonts(fontDir);
 	console.log(`  fuentes      ${nFonts ? `${nFonts} de la caché de Joplin` : 'NO ENCONTRADAS — los títulos saldrán en Helvetica'}`);
 	console.log(`  local        ${local}`);

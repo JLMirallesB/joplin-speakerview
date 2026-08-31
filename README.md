@@ -52,8 +52,14 @@ En la ventana de la presentación, **`F` la pone a pantalla completa** (atajo de
 reveal) y `Esc` sale. No se puede disparar desde la vista del ponente: el
 navegador exige un gesto del usuario en esa misma ventana.
 
-Si encuentra varias presentaciones te las lista con su ruta de libreta
-(*FORMACIONES › Pla Millora › Mod 1*) para que elijas.
+La búsqueda es recursiva: si apuntas a una carpeta con varias presentaciones
+exportadas, te las lista con su ruta de libreta (*FORMACIONES › Pla Millora ›
+Mod 1*) para que elijas. Desde la vista del ponente, el botón **Biblioteca**
+vuelve a esa lista sin reiniciar.
+
+En macOS puedes dejarte un lanzador de doble clic (`*.command`, ignorado por
+git porque lleva rutas de cada máquina) que pregunte la carpeta con el diálogo
+de Finder y recuerde la última.
 
 ## El mando del móvil
 

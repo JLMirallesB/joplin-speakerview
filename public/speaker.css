@@ -47,6 +47,8 @@ html, body {
 }
 .pill strong { font-weight: 700; }
 #status.off { background: #3a2226; color: var(--bad); }
+a.pill.link { color: var(--fg); text-decoration: none; }
+a.pill.link:hover { background: #2c313a; color: #fff; }
 #status.on  { background: #1f3329; color: var(--ok); }
 
 /* ------------------------------------------------------------------ miniaturas */

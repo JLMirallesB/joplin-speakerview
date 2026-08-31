@@ -154,9 +154,8 @@
 			if (msg.t === 'exec' && !isMirror) call(msg.method, msg.args);
 			else if (msg.t === 'reload') location.reload();
 			else if (msg.t === 'restore' && !isMirror) {
-				// Volver donde estábamos antes de la recarga. Se aplica con un
-				// respiro para que reveal haya terminado de montarse.
-				setTimeout(function () { call('slide', [msg.h, msg.v, msg.f]); }, 250);
+				pendingRestore = msg;
+				applyRestore();
 			}
 		};
 		ws.onclose = function () { ws = null; setTimeout(connect, 1000); };
@@ -164,6 +163,43 @@
 	}
 
 	var outlineSent = null;
+	var pendingRestore = null;
+	var restoreTimer = null;
+
+	/*
+	 * Volver a la diapositiva de antes de la recarga.
+	 *
+	 * No vale un retardo fijo: reveal registra su escucha de postMessage
+	 * durante el arranque, y hasta entonces las órdenes se pierden sin avisar.
+	 * Se insiste hasta que la posición coincide, o se abandona a los 3 s.
+	 */
+	function applyRestore() {
+		if (!pendingRestore || restoreTimer) return;
+		var r = pendingRestore, esperas = 0, intentos = 0;
+
+		function parar() {
+			clearInterval(restoreTimer);
+			restoreTimer = null;
+			pendingRestore = null;
+		}
+
+		restoreTimer = setInterval(function () {
+			var wrapper = document.querySelector('.reveal');
+			var listo = wrapper && wrapper.querySelector('.slides section.present');
+
+			// Montar la presentación lleva varios segundos, y esa espera no
+			// puede gastar intentos: era lo que hacía fracasar la restauración.
+			if (!listo) {
+				if (++esperas > 80) parar();
+				return;
+			}
+
+			if (readState(wrapper).h === r.h && readState(wrapper).v === r.v) return parar();
+
+			call('slide', [r.h, r.v, r.f]);
+			if (++intentos > 12) parar();
+		}, 150);
+	}
 
 	function report(force) {
 		var wrapper = document.querySelector('.reveal');
@@ -350,6 +386,7 @@
 		setTimeout(publishOutline, 1200);
 
 		if (!isMirror) {
+			applyRestore();          // por si el "restore" llegó antes que reveal
 			report(true);
 			setTimeout(function () { report(true); }, 400);
 			// Red de seguridad para transiciones que no emiten evento.
