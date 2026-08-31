@@ -169,6 +169,84 @@
 		send(st);
 	}
 
+	/* ------------------------------------------------------------ encaje de texto */
+
+	/*
+	 * Encoge un elemento SÓLO si alguna de sus palabras, entera, no cabe a lo
+	 * ancho. Ése es el caso en el que reveal aplica su word-wrap:break-word y
+	 * parte la palabra por la mitad, dejando letras sueltas en la línea
+	 * siguiente.
+	 *
+	 * Deliberadamente no fuerza el texto a una sola línea: un título largo
+	 * repartido en dos líneas se lee bien y encogerlo lo empeoraría. Si todas
+	 * las palabras caben, esto no toca nada.
+	 *
+	 * Reveal no trae nada parecido: fitty sólo actúa sobre .r-fit-text y lo que
+	 * hace es AGRANDAR hasta llenar, que es el problema contrario.
+	 */
+	var FIT_SELECTOR = 'h1,h2,h3,h4,h5,h6,p,li,blockquote,code,figcaption';
+	var MIN_FIT = 0.5;
+	var measureCtx = null;
+
+	function wordWidth(text, font) {
+		if (!measureCtx) {
+			var c = document.createElement('canvas');
+			measureCtx = c.getContext('2d');
+		}
+		measureCtx.font = font;
+		var words = text.split(/\s+/);
+		var max = 0;
+		for (var i = 0; i < words.length; i++) {
+			var w = measureCtx.measureText(words[i]).width;
+			if (w > max) max = w;
+		}
+		return max;
+	}
+
+	function fitElements(slide) {
+		if (!slide || CFG.fit === false) return;
+		var all = slide.querySelectorAll(FIT_SELECTOR);
+		for (var i = 0; i < all.length; i++) {
+			var el = all[i];
+			// Sólo hojas: si contiene otro candidato, ya le tocará a ése, y así
+			// no se encogen padre e hijo componiendo el factor.
+			if (el.querySelector(FIT_SELECTOR)) continue;
+
+			// innerText y no textContent: textContent pega las palabras que
+			// separa un <br>, y "Rendimiento<br>académico" pasaría por una
+			// palabra de 20 letras que no cabe en su tarjeta.
+			var text = (el.innerText || el.textContent || '').trim();
+			if (!text) continue;
+
+			var base = el.getAttribute('data-sv-size');
+			if (base === null) {
+				base = parseFloat(getComputedStyle(el).fontSize);
+				if (!(base > 0)) continue;
+				el.setAttribute('data-sv-size', String(base));
+			} else {
+				base = parseFloat(base);
+			}
+			el.style.fontSize = base + 'px';
+
+			var avail = el.clientWidth;
+			if (!avail) continue;
+
+			var cs = getComputedStyle(el);
+			var longest = wordWidth(text, cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily);
+			// Margen de un píxel: en una caja que se ajusta a su contenido, el
+			// ancho disponible y el de la palabra coinciden por definición.
+			if (longest > avail + 1) {
+				var factor = Math.max(MIN_FIT, (avail / longest) * 0.97);
+				el.style.fontSize = (base * factor).toFixed(2) + 'px';
+			}
+		}
+	}
+
+	function fitCurrent(wrapper) {
+		var all = wrapper.querySelectorAll('.slides section.present');
+		for (var i = 0; i < all.length; i++) fitElements(all[i]);
+	}
+
 	/* ----------------------------------------------------------------- espejo */
 
 	function setupMirror() {
@@ -242,8 +320,17 @@
 
 	whenReveal(function (wrapper) {
 		EVENTS.forEach(function (t) {
-			wrapper.addEventListener(t, function () { if (!isMirror) report(false); }, false);
+			wrapper.addEventListener(t, function () {
+				fitCurrent(wrapper);
+				if (!isMirror) report(false);
+			}, false);
 		});
+
+		fitCurrent(wrapper);
+		setTimeout(function () { fitCurrent(wrapper); }, 600);
+		// Reveal recalcula su escala al redimensionar; el hueco disponible
+		// cambia con ella.
+		window.addEventListener('resize', function () { fitCurrent(wrapper); });
 
 		// El outline lo publica cualquier rol: se lee del DOM que reveal ya ha
 		// montado, así que las notas siguen ahí aunque sólo esté abierta la

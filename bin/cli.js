@@ -4,14 +4,17 @@ import os from 'node:os';
 import { openLibrary } from '../src/library.js';
 import { createServer } from '../src/server.js';
 import { attachSockets } from '../src/sockets.js';
+import { findFontDir, countFonts, findJoplinTheme } from '../src/fonts.js';
 
 function parseArgs(argv) {
-	const opts = { target: null, port: 7777, host: '0.0.0.0', open: true };
+	const opts = { target: null, port: 7777, host: '0.0.0.0', open: true, fit: true };
 	for (let i = 0; i < argv.length; i++) {
 		const a = argv[i];
 		if (a === '--port' || a === '-p') opts.port = parseInt(argv[++i], 10);
 		else if (a === '--host') opts.host = argv[++i];
 		else if (a === '--no-open') opts.open = false;
+		else if (a === '--fonts') opts.fonts = argv[++i];
+		else if (a === '--no-fit') opts.fit = false;
 		else if (a === '-h' || a === '--help') opts.help = true;
 		else if (!a.startsWith('-')) opts.target = a;
 	}
@@ -29,6 +32,10 @@ joplin-speakerview — speaker view para presentaciones reveal.js exportadas de 
   -p, --port    Puerto (7777 por defecto; si está ocupado, prueba el siguiente)
       --host    Interfaz de escucha (0.0.0.0 por defecto)
       --no-open No abrir el navegador
+      --fonts   Carpeta con las fuentes del plugin (por defecto, la caché de
+                Joplin; el HTML exportado no las incluye)
+      --no-fit  No encoger los títulos que no caben (reveal los partirá por
+                la mitad de una palabra, como hace por defecto)
   -h, --help    Esta ayuda
 `;
 
@@ -70,7 +77,9 @@ if (opts.help) { console.log(HELP); process.exit(0); }
 
 try {
 	const { root, decks, initialId } = await openLibrary(opts.target || process.cwd());
-	const { server } = createServer({ root, decks });
+	const fontDir = await findFontDir(opts.fonts);
+	const themeCss = opts.fonts ? null : await findJoplinTheme();
+	const { server } = createServer({ root, decks, fontDir, themeCss, fit: opts.fit });
 	attachSockets(server, { decks });
 
 	const port = await listen(server, opts.port, opts.host);
@@ -80,6 +89,8 @@ try {
 	console.log(`\n  joplin-speakerview`);
 	console.log(`  biblioteca   ${root}`);
 	console.log(`  encontradas  ${decks.length} presentación${decks.length === 1 ? '' : 'es'}`);
+	const nFonts = await countFonts(fontDir);
+	console.log(`  fuentes      ${nFonts ? `${nFonts} de la caché de Joplin` : 'NO ENCONTRADAS — los títulos saldrán en Helvetica'}`);
 	console.log(`  local        ${local}`);
 	if (lan) console.log(`  en la red    http://${lan}:${port}`);
 

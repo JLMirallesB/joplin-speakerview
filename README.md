@@ -35,7 +35,13 @@ joplin-speakerview <ruta> [opciones]
   -p, --port    Puerto (7777; si está ocupado prueba el siguiente)
       --host    Interfaz de escucha (0.0.0.0)
       --no-open No abrir el navegador
+      --fonts   Carpeta con las fuentes del plugin
+      --no-fit  No encoger el texto cuyas palabras no caben
 ```
+
+En la ventana de la presentación, **`F` la pone a pantalla completa** (atajo de
+reveal) y `Esc` sale. No se puede disparar desde la vista del ponente: el
+navegador exige un gesto del usuario en esa misma ventana.
 
 Si encuentra varias presentaciones te las lista con su ruta de libreta
 (*FORMACIONES › Pla Millora › Mod 1*) para que elijas.
@@ -77,6 +83,38 @@ triplicado) y montados **siempre a tamaño real de diapositiva**, reducidos con
 `transform: scale()`. Es obligatorio: reveal 5.1 conmuta solo a su modo scroll
 por debajo de `scrollActivationWidth` (435 px), rehace el DOM y la miniatura
 sale en blanco.
+
+## Las fuentes que faltan
+
+El exportador tampoco copia las fuentes. El bundle las pide por un nombre de
+hash contra un `publicPath` que calcula como *directorio del script* + `../..`,
+o sea fuera de `pluginAssets`, donde además no hay nada. Reveal pide
+`Source Sans Pro` y cae a `Helvetica`, que es un 9 % más ancha (`Internacionales`
+a 600 40px mide 269 px contra 293 px), así que los títulos ocupan más y acaban
+partiéndose.
+
+Se sirven de la caché de plugins de Joplin. Si tienes Source Sans Pro instalada
+en el sistema no notarás la diferencia, pero en cualquier otro ordenador —o en
+el móvil— sí.
+
+## El texto que no cabe
+
+Reveal aplica `word-wrap: break-word` a los títulos, así que una palabra más
+ancha que su hueco se parte por la mitad y deja letras sueltas en la línea
+siguiente. Cuando eso pasa, la aplicación encoge ese elemento lo justo para que
+la palabra quepa (nunca por debajo del 50 %), y no toca nada más.
+
+Deliberadamente **no** fuerza el texto a una sola línea: un título largo
+repartido en dos se lee bien y encogerlo lo empeoraría. Reveal no trae nada
+parecido — fitty sólo actúa sobre `.r-fit-text` y lo que hace es agrandar hasta
+llenar, el problema contrario.
+
+Para ver qué texto se partiría, con el servidor levantado:
+
+```bash
+node bin/cli.js <ruta> --no-open --no-fit &
+node test/overflow.js
+```
 
 ## El fondo blanco
 

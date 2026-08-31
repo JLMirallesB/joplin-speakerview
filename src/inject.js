@@ -19,13 +19,13 @@ export function encodePath(relDir) {
  * El <base> tiene que ir antes que cualquier elemento con URL relativa, y en
  * este export el primero es el <link> de highlight.js, que va pegado al <head>.
  */
-export async function renderDeck(deck, { role = 'deck' } = {}) {
+export async function renderDeck(deck, { role = 'deck', fit = true } = {}) {
 	const html = await fs.readFile(deck.absPath, 'utf8');
 
 	const base = `<base href="/lib/${encodePath(deck.relDir)}">`;
 	const bootstrap =
 		`<link rel="stylesheet" href="/_sv/joplin-vars.css">\n` +
-		`<script>window.__SV__=${JSON.stringify({ deckId: deck.id, role })};</script>\n` +
+		`<script>window.__SV__=${JSON.stringify({ deckId: deck.id, role, fit })};</script>\n` +
 		`<script src="/_sv/client.js" defer></script>\n`;
 
 	let out = html;

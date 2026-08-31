@@ -4,6 +4,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderDeck } from './inject.js';
+import { FONT_NAME } from './fonts.js';
 
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 
@@ -84,8 +85,22 @@ async function servePage(res, name, extra = {}) {
 	send(res, 200, html, { 'Content-Type': MIME['.html'] });
 }
 
-export function createServer({ root, decks }) {
+export function createServer({ root, decks, fontDir = null, themeCss = null, fit = true }) {
 	const byId = new Map(decks.map((d) => [d.id, d]));
+
+	/*
+	 * El bundle pide sus fuentes por nombre de hash contra un publicPath que
+	 * apunta fuera de pluginAssets, y el exportador no las copia. Si el fichero
+	 * no está en el export y tiene forma de fuente, lo servimos de la caché de
+	 * Joplin. Sin esto reveal cae a Helvetica y los títulos desbordan.
+	 */
+	async function fontFallback(urlPath) {
+		if (!fontDir) return null;
+		const name = path.basename(urlPath);
+		if (!FONT_NAME.test(name)) return null;
+		const abs = path.join(fontDir, name);
+		return (await fsp.stat(abs).then((st) => st.isFile()).catch(() => false)) ? abs : null;
+	}
 
 	const server = http.createServer(async (req, res) => {
 		const url = new URL(req.url, 'http://localhost');
@@ -101,7 +116,7 @@ export function createServer({ root, decks }) {
 				const deck = byId.get(m[1]);
 				if (!deck) return send(res, 404, 'Presentación desconocida');
 				const role = url.searchParams.get('sv') === 'mirror' ? 'mirror' : 'deck';
-				const html = await renderDeck(deck, { role });
+				const html = await renderDeck(deck, { role, fit });
 				return send(res, 200, html, { 'Content-Type': MIME['.html'] });
 			}
 
@@ -114,7 +129,17 @@ export function createServer({ root, decks }) {
 			if (p.startsWith('/lib/')) {
 				const abs = safeResolve(root, p.slice('/lib'.length));
 				if (!abs) return send(res, 403, 'Prohibido');
+				if (!(await fsp.stat(abs).then((st) => st.isFile()).catch(() => false))) {
+					const font = await fontFallback(p);
+					if (font) return sendFile(req, res, font);
+				}
 				return sendFile(req, res, abs);
+			}
+
+			if (p === '/_sv/joplin-vars.css' && themeCss) {
+				// El tema vivo de Joplin manda sobre la copia del repo: así el
+				// fondo sale con los colores que el usuario tiene puestos hoy.
+				return sendFile(req, res, themeCss);
 			}
 
 			if (p.startsWith('/_sv/')) {
