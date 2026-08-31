@@ -1,0 +1,20 @@
+{
+  "name": "joplin-speakerview",
+  "version": "0.1.0",
+  "description": "Speaker view y mando a distancia para presentaciones reveal.js exportadas desde Joplin",
+  "type": "module",
+  "bin": {
+    "joplin-speakerview": "bin/cli.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node bin/cli.js",
+    "test": "node test/run.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "license": "MIT"
+}

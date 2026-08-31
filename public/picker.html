@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Presentaciones</title>
+<link rel="stylesheet" href="/_sv/speaker.css">
+<style>
+	body { overflow: auto; }
+	.wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 60px; }
+	h1 { font-size: 22px; margin: 0 0 4px; }
+	.sub { color: var(--dim); margin-bottom: 28px; font-size: 14px; }
+	.deck {
+		display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+		background: var(--panel); border: 1px solid var(--line);
+		border-radius: 10px; margin-bottom: 10px;
+	}
+	.deck .meta { flex: 1; min-width: 0; }
+	.deck .t { font-weight: 600; }
+	.deck .nb { color: var(--dim); font-size: 13px; margin-top: 2px; }
+	a.btn {
+		text-decoration: none; color: var(--fg); background: var(--panel-2);
+		border: 1px solid var(--line); border-radius: 7px; padding: 8px 13px; white-space: nowrap;
+	}
+	a.btn.primary { background: #24405f; border-color: #35597f; }
+	a.btn:hover { background: #2c313a; }
+</style>
+<script>/*__SV_BOOT__*/</script>
+</head>
+<body>
+<div class="wrap">
+	<h1>Presentaciones</h1>
+	<div class="sub" id="sub"></div>
+	<div id="list"></div>
+</div>
+<script>
+	var decks = window.__SV__.decks || [];
+	document.getElementById('sub').textContent =
+		decks.length === 1 ? '1 presentación encontrada' : decks.length + ' presentaciones encontradas';
+	document.getElementById('list').innerHTML = decks.map(function (d) {
+		return '<div class="deck"><div class="meta">' +
+			'<div class="t"></div><div class="nb"></div></div>' +
+			'<a class="btn primary" href="/speaker/' + d.id + '" target="_blank">Speaker view</a>' +
+			'<a class="btn" href="/present/' + d.id + '" target="_blank">Presentación</a>' +
+			'</div>';
+	}).join('');
+	// El texto por separado, que los títulos de Joplin traen de todo.
+	var nodes = document.querySelectorAll('#list .deck');
+	decks.forEach(function (d, i) {
+		nodes[i].querySelector('.t').textContent = d.title;
+		nodes[i].querySelector('.nb').textContent = d.notebook || '';
+	});
+</script>
+</body>
+</html>

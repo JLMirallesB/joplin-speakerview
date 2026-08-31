@@ -1,0 +1,136 @@
+:root {
+	--bg: #14161a;
+	--panel: #1c1f25;
+	--panel-2: #23272f;
+	--line: #333a45;
+	--fg: #e7eaf0;
+	--dim: #8d96a5;
+	--accent: #6ea8fe;
+	--ok: #5dd39e;
+	--warn: #f2c14e;
+	--bad: #f2666b;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+	margin: 0; height: 100%; overflow: hidden;
+	background: var(--bg); color: var(--fg);
+	font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+#app {
+	display: grid;
+	grid-template-columns: minmax(320px, 37%) 1fr;
+	grid-template-rows: auto 1fr auto;
+	grid-template-areas: "top top" "thumbs notes" "bar bar";
+	height: 100%;
+}
+
+/* ------------------------------------------------------------------- cabecera */
+
+#top {
+	grid-area: top; display: flex; align-items: center; gap: 14px;
+	padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+}
+#deck-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#deck-notebook { color: var(--dim); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#top .spacer { flex: 1; }
+
+.pill {
+	padding: 3px 10px; border-radius: 999px; background: var(--panel-2);
+	font-variant-numeric: tabular-nums; font-size: 13px; white-space: nowrap;
+}
+.pill strong { font-weight: 700; }
+#status.off { background: #3a2226; color: var(--bad); }
+#status.on  { background: #1f3329; color: var(--ok); }
+
+/* ------------------------------------------------------------------ miniaturas */
+
+#thumbs {
+	grid-area: thumbs; display: flex; flex-direction: column; gap: 10px;
+	padding: 12px; min-width: 0; min-height: 0;
+}
+.thumb { display: flex; flex-direction: column; min-height: 0; }
+.thumb .cap {
+	font-size: 11px; letter-spacing: .09em; text-transform: uppercase;
+	color: var(--dim); margin-bottom: 5px;
+}
+/* El tamaño del marco lo fija speaker.js con la proporción real que reporta el
+   espejo: con aspect-ratio a secas el marco colapsa dentro del flex y reveal ni
+   llega a montarse. */
+.thumb .frame {
+	position: relative;
+	border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #000;
+}
+.thumb .frame-box { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.thumb iframe {
+	position: absolute; top: 0; left: 0; border: 0; pointer-events: none;
+	transform-origin: 0 0;   /* speaker.js lo monta a tamaño real y lo escala */
+}
+#thumb-current { flex: 1.35; }
+#thumb-next { flex: 1; }
+#thumb-next .frame { opacity: .82; }
+#next-empty {
+	position: absolute; inset: 0; display: none; place-items: center;
+	color: var(--dim); font-size: 14px; background: #0d0f12;
+}
+#thumb-next.at-end #next-empty { display: grid; }
+
+/* ----------------------------------------------------------------------- notas */
+
+#notes-pane {
+	grid-area: notes; display: flex; flex-direction: column;
+	min-height: 0; min-width: 0; border-left: 1px solid var(--line);
+}
+#notes-head {
+	display: flex; align-items: baseline; gap: 10px;
+	padding: 12px 20px 6px; color: var(--dim); font-size: 13px;
+}
+#slide-title { color: var(--fg); font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#notes {
+	flex: 1; overflow-y: auto; padding: 6px 22px 24px;
+	font-size: var(--notes-size, 21px); line-height: 1.62;
+	max-width: 62ch;   /* leer de un vistazo, no cruzar la pantalla entera */
+}
+#notes p:first-child { margin-top: 0; }
+#notes strong { color: #fff; }
+#notes code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+#notes ul, #notes ol { padding-left: 1.3em; }
+#notes.empty::before {
+	content: "Sin notas en esta diapositiva"; color: #5c6472; font-style: italic; font-size: 17px;
+}
+
+/* ----------------------------------------------------------------- barra baja */
+
+#bar {
+	grid-area: bar; display: flex; align-items: center; gap: 10px;
+	padding: 9px 16px; background: var(--panel); border-top: 1px solid var(--line);
+	flex-wrap: wrap;
+}
+#bar .spacer { flex: 1; }
+
+#elapsed {
+	font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums;
+	letter-spacing: .01em; min-width: 104px;
+}
+#elapsed.running { color: var(--ok); }
+#elapsed.warn { color: var(--warn); }
+#elapsed.over { color: var(--bad); }
+#clock { font-size: 15px; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+button {
+	font: inherit; color: var(--fg); background: var(--panel-2);
+	border: 1px solid var(--line); border-radius: 7px;
+	padding: 7px 13px; cursor: pointer; line-height: 1;
+}
+button:hover { background: #2c313a; }
+button:active { transform: translateY(1px); }
+button.primary { background: #24405f; border-color: #35597f; }
+button.on { background: #24405f; border-color: var(--accent); color: #fff; }
+#target { width: 62px; text-align: center; }
+input[type="number"] {
+	font: inherit; color: var(--fg); background: var(--panel-2);
+	border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; width: 62px;
+}
+.hint { color: #6d7686; font-size: 12px; }

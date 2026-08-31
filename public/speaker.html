@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Speaker view</title>
+<link rel="stylesheet" href="/_sv/speaker.css">
+<script>/*__SV_BOOT__*/</script>
+</head>
+<body>
+<div id="app">
+
+	<header id="top">
+		<div style="min-width:0">
+			<div id="deck-title"></div>
+			<div id="deck-notebook"></div>
+		</div>
+		<div class="spacer"></div>
+		<span class="pill" id="pos">— / —</span>
+		<span class="pill" id="frag" hidden></span>
+		<span class="pill off" id="status">sin presentación</span>
+	</header>
+
+	<section id="thumbs">
+		<div class="thumb" id="thumb-current">
+			<div class="cap">Actual</div>
+			<div class="frame-box"><div class="frame"><iframe id="iframe-current" title="Diapositiva actual"></iframe></div></div>
+		</div>
+		<div class="thumb" id="thumb-next">
+			<div class="cap" id="next-cap">Siguiente</div>
+			<div class="frame-box">
+				<div class="frame">
+					<iframe id="iframe-next" title="Siguiente paso"></iframe>
+					<div id="next-empty">Fin de la presentación</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section id="notes-pane">
+		<div id="notes-head">
+			<span id="slide-title"></span>
+			<div class="spacer" style="flex:1"></div>
+			<button id="notes-smaller" title="Reducir las notas">A−</button>
+			<button id="notes-bigger" title="Agrandar las notas">A+</button>
+		</div>
+		<article id="notes"></article>
+	</section>
+
+	<footer id="bar">
+		<span id="elapsed">00:00</span>
+		<button id="timer-toggle" title="Espacio largo: iniciar o pausar (T)">Iniciar</button>
+		<button id="timer-reset" title="Reiniciar el cronómetro (R)">Reiniciar</button>
+		<span class="hint">meta</span>
+		<input type="number" id="target" min="1" max="600" placeholder="min">
+		<span id="clock"></span>
+		<div class="spacer"></div>
+		<button id="prev" title="Atrás (←)">◀</button>
+		<button id="next" class="primary" title="Adelante (→ o espacio)">▶</button>
+		<button id="blackout" title="Pantalla en negro (B)">Negro</button>
+		<button id="overview" title="Rejilla de diapositivas (G)">Rejilla</button>
+	</footer>
+
+</div>
+<script src="/_sv/speaker.js"></script>
+</body>
+</html>
