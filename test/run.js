@@ -11,6 +11,16 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const target = process.argv[2] || process.env.SV_FIXTURE || path.join(process.env.HOME, 'Desktop', 'presentation');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Si ya hay algo escuchando, las pruebas hablarían con ese servidor y no con
+// el nuestro, que se iría al puerto siguiente. Pasó, y costó de ver: un
+// servidor viejo con estado sucio hacía fallar comprobaciones al azar.
+const ocupado = await fetch('http://localhost:7777/api/library').then(() => true).catch(() => false);
+if (ocupado) {
+	console.error('El puerto 7777 ya está ocupado. Párala antes:\n' +
+		'  pkill -f joplin-speakerview\n');
+	process.exit(1);
+}
+
 const server = spawn('node', [path.join(ROOT, 'bin', 'cli.js'), target, '--no-open', '--port', '7777'],
 	{ cwd: ROOT, stdio: ['ignore', 'pipe', 'inherit'] });
 let banner = '';

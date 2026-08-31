@@ -207,6 +207,13 @@ cp ~/.config/joplin-desktop/tmp/plugin_io.github.personalizedrefrigerator.reveal
 npm test
 ```
 
+Aborta si el puerto 7777 está ocupado: si no, las pruebas hablarían con esa otra
+instancia y no con la suya. Para liberarlo:
+
+```bash
+pkill -f joplin-speakerview
+```
+
 Levanta el servidor y pasa dos suites contra Chrome en headless por el protocolo
 de DevTools. Necesita una presentación exportada; por defecto busca en
 `~/Desktop/presentation`, y se puede cambiar:

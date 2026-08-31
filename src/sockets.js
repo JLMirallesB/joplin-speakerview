@@ -2,6 +2,9 @@ import { WebSocketServer } from 'ws';
 import { createState, snapshot, applyReport, applyTimer } from './state.js';
 import { isLocal, tokenOk } from './auth.js';
 
+/* Cuánto tiempo tras una recarga se sigue devolviendo la posición guardada. */
+const RESTORE_MS = 30000;
+
 /**
  * Roles:
  *   deck    ventana de presentación. Obedece "exec" y reporta lo que reveal
@@ -65,7 +68,12 @@ export function attachSockets(server, { decks, token = '' }) {
 					// Tras una recarga la ventana vuelve a la primera diapositiva.
 					// "restore" es la única orden que obedece nada más entrar; los
 					// "state" normales los ignora, que es lo que evita el eco.
-					if (client.role === 'deck' && st.rev > 0) {
+					//
+					// Sólo dentro de la ventana de tiempo que abre una recarga: si
+					// no, cualquier ventana que se abriera más tarde daría un salto
+					// a la posición de una sesión anterior.
+					const recargando = st.reloadAt && Date.now() - st.reloadAt < RESTORE_MS;
+					if (client.role === 'deck' && st.rev > 0 && recargando) {
 						ws.send(JSON.stringify({ t: 'restore', h: st.h, v: st.v, f: st.f }));
 					}
 					broadcastPresence(client.deckId);
@@ -127,7 +135,7 @@ export function attachSockets(server, { decks, token = '' }) {
 	 * abajo, cuando la ventana vuelve a decir hola.
 	 */
 	function reloadAll() {
-		for (const s of states.values()) s.outline = null;
+		for (const s of states.values()) { s.outline = null; s.reloadAt = Date.now(); }
 		for (const c of clients) {
 			if (c.deckId && (c.role === 'deck' || c.role === 'mirror')) {
 				try { c.ws.send(JSON.stringify({ t: 'reload' })); } catch { /* se cerró */ }
