@@ -55,7 +55,11 @@ export async function renderDeck(deck, { role = 'deck', fit = true, size = null 
 
 	// Tiene que ir dentro de #rendered-md: es lo único que el plugin lee como
 	// contenido de la presentación.
-	const cfg = configBlock(size);
+	//
+	// Si la nota ya trae su propio <rjs-config>, manda ella y no inyectamos
+	// nada: el plugin resuelve cada opción con querySelector, o sea el primero
+	// del documento, y como inyectamos al principio le ganaríamos siempre.
+	const cfg = out.search(/<rjs-config[\s>]/i) === -1 ? configBlock(size) : '';
 	if (cfg) {
 		const anchor = out.search(/<div id="rendered-md">/i);
 		if (anchor !== -1) {

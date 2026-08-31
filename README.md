@@ -116,6 +116,39 @@ node bin/cli.js <ruta> --no-open --no-fit &
 node test/overflow.js
 ```
 
+## El lienzo y las franjas negras
+
+Reveal no maqueta contra la ventana: fija un lienzo y lo escala entero, que es
+lo que hace que la presentación se vea igual en cualquier pantalla. Por eso
+aparecen franjas negras cuando la proporción no coincide: 960×700 es 1,37 y una
+pantalla 16:9 es 1,78. Medido sobre 1920×1080, se usa el **68 %** del ancho.
+
+Los cuerpos de letra de reveal son píxeles absolutos **del lienzo**, así que la
+forma de ganar ancho sin cambiar el tamaño del texto es mantener el alto y
+ensanchar: 700 × 16/9 = 1244. Con eso el uso del ancho sube al **88 %** y la
+altura de la diapositiva no varía. Poner 1600×900, en cambio, deja todo el texto
+un 28 % más pequeño.
+
+Lo suyo es dejarlo dicho en la nota, con el mecanismo del propio plugin, para
+que Joplin y la presentación proyectada coincidan:
+
+```html
+<rjs-config>
+  <rjs-width>1244</rjs-width>
+  <rjs-height>700</rjs-height>
+  <rjs-margin>0.02</rjs-margin>
+</rjs-config>
+```
+
+`<rjs-config>` admite además `min-scale`, `max-scale`, `transition`,
+`transition-speed`, `background-transition`, `controls-layout`,
+`navigation-mode`, `auto-slide`, y booleanas como `center`, `progress`,
+`slide-number`, `loop`, `shuffle`, `touch`, `mouse-wheel`, `fragments`.
+
+La opción `--size` de la app hace lo mismo sin tocar la nota, pero entonces
+Joplin sigue enseñando 960×700 y las dos vistas no coinciden. Si la nota ya
+trae un `<rjs-config>`, `--size` no se aplica: manda la nota.
+
 ## El fondo blanco
 
 Dentro de Joplin, el plugin inyecta un CSS que define las 95 variables
