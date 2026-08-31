@@ -1,3 +1,6 @@
 node_modules/
 .DS_Store
 *.log
+
+# Lanzador de doble clic: lleva rutas de la máquina de cada uno
+*.command
