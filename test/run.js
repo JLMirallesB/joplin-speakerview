@@ -26,6 +26,7 @@ if (!up) { console.error('el servidor no arrancó\n' + banner); server.kill(); p
 let failed = 0;
 for (const suite of ['e2e.js', 'speaker.js']) {
 	console.log(`\n── ${suite}`);
+	await sleep(1500);   // que la suite anterior suelte sus WebSocket
 	const code = await new Promise((res) => {
 		spawn('node', [path.join(ROOT, 'test', suite)], { cwd: ROOT, stdio: 'inherit' }).on('exit', res);
 	});
