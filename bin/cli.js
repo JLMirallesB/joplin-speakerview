@@ -6,6 +6,19 @@ import { createServer } from '../src/server.js';
 import { attachSockets } from '../src/sockets.js';
 import { findFontDir, countFonts, findJoplinTheme } from '../src/fonts.js';
 
+/* "16:9" mantiene el alto de reveal y ensancha; "1600x900" fija ambos. */
+function parseSize(v) {
+	if (!v) return null;
+	let m = /^(\d+)\s*[x×]\s*(\d+)$/i.exec(v.trim());
+	if (m) return { width: +m[1], height: +m[2] };
+	m = /^(\d+)\s*[:/]\s*(\d+)$/.exec(v.trim());
+	if (m) {
+		const height = 700;                       // el alto por defecto de reveal
+		return { width: Math.round(height * (+m[1] / +m[2])), height };
+	}
+	throw new Error(`No entiendo --size ${v}. Usa 16:9 o 1600x900.`);
+}
+
 function parseArgs(argv) {
 	const opts = { target: null, port: 7777, host: '0.0.0.0', open: true, fit: true };
 	for (let i = 0; i < argv.length; i++) {
@@ -15,6 +28,8 @@ function parseArgs(argv) {
 		else if (a === '--no-open') opts.open = false;
 		else if (a === '--fonts') opts.fonts = argv[++i];
 		else if (a === '--no-fit') opts.fit = false;
+		else if (a === '--size') opts.size = parseSize(argv[++i]);
+		else if (a === '--margin') opts.margin = parseFloat(argv[++i]);
 		else if (a === '-h' || a === '--help') opts.help = true;
 		else if (!a.startsWith('-')) opts.target = a;
 	}
@@ -36,6 +51,10 @@ joplin-speakerview — speaker view para presentaciones reveal.js exportadas de 
                 Joplin; el HTML exportado no las incluye)
       --no-fit  No encoger los títulos que no caben (reveal los partirá por
                 la mitad de una palabra, como hace por defecto)
+      --size    Lienzo de la presentación: 16:9, 16:10 o 1600x900.
+                Por defecto reveal usa 960x700 (4:2,9), que en una pantalla
+                16:9 deja un 26 % del ancho sin usar.
+      --margin  Margen alrededor del lienzo (reveal usa 0.04)
   -h, --help    Esta ayuda
 `;
 
@@ -79,7 +98,9 @@ try {
 	const { root, decks, initialId } = await openLibrary(opts.target || process.cwd());
 	const fontDir = await findFontDir(opts.fonts);
 	const themeCss = opts.fonts ? null : await findJoplinTheme();
-	const { server } = createServer({ root, decks, fontDir, themeCss, fit: opts.fit });
+	const size = opts.size || (opts.margin !== undefined ? {} : null);
+	if (size && opts.margin !== undefined) size.margin = opts.margin;
+	const { server } = createServer({ root, decks, fontDir, themeCss, fit: opts.fit, size });
 	attachSockets(server, { decks });
 
 	const port = await listen(server, opts.port, opts.host);

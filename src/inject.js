@@ -19,7 +19,22 @@ export function encodePath(relDir) {
  * El <base> tiene que ir antes que cualquier elemento con URL relativa, y en
  * este export el primero es el <link> de highlight.js, que va pegado al <head>.
  */
-export async function renderDeck(deck, { role = 'deck', fit = true } = {}) {
+/*
+ * El plugin lee las opciones de reveal de un <rjs-config> que viva en la nota, y
+ * lo aplica por encima de todo lo demás. Inyectarlo aquí permite cambiar el
+ * lienzo sin tocar la nota; para que Joplin lo vea igual, hay que ponerlo en la
+ * nota. Los hijos los borra el plugin al leerlos.
+ */
+function configBlock(size) {
+	if (!size) return '';
+	const parts = [];
+	if (size.width) parts.push(`<rjs-width>${size.width}</rjs-width>`);
+	if (size.height) parts.push(`<rjs-height>${size.height}</rjs-height>`);
+	if (size.margin !== undefined) parts.push(`<rjs-margin>${size.margin}</rjs-margin>`);
+	return parts.length ? `<rjs-config style="display:none">${parts.join('')}</rjs-config>\n` : '';
+}
+
+export async function renderDeck(deck, { role = 'deck', fit = true, size = null } = {}) {
 	const html = await fs.readFile(deck.absPath, 'utf8');
 
 	const base = `<base href="/lib/${encodePath(deck.relDir)}">`;
@@ -36,6 +51,17 @@ export async function renderDeck(deck, { role = 'deck', fit = true } = {}) {
 		out = out.slice(0, at) + '\n' + base + out.slice(at);
 	} else {
 		out = base + out;
+	}
+
+	// Tiene que ir dentro de #rendered-md: es lo único que el plugin lee como
+	// contenido de la presentación.
+	const cfg = configBlock(size);
+	if (cfg) {
+		const anchor = out.search(/<div id="rendered-md">/i);
+		if (anchor !== -1) {
+			const at = out.indexOf('>', anchor) + 1;
+			out = out.slice(0, at) + cfg + out.slice(at);
+		}
 	}
 
 	const headClose = out.search(/<\/head>/i);

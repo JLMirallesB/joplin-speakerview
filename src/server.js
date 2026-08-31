@@ -85,7 +85,7 @@ async function servePage(res, name, extra = {}) {
 	send(res, 200, html, { 'Content-Type': MIME['.html'] });
 }
 
-export function createServer({ root, decks, fontDir = null, themeCss = null, fit = true }) {
+export function createServer({ root, decks, fontDir = null, themeCss = null, fit = true, size = null }) {
 	const byId = new Map(decks.map((d) => [d.id, d]));
 
 	/*
@@ -116,7 +116,7 @@ export function createServer({ root, decks, fontDir = null, themeCss = null, fit
 				const deck = byId.get(m[1]);
 				if (!deck) return send(res, 404, 'Presentación desconocida');
 				const role = url.searchParams.get('sv') === 'mirror' ? 'mirror' : 'deck';
-				const html = await renderDeck(deck, { role, fit });
+				const html = await renderDeck(deck, { role, fit, size });
 				return send(res, 200, html, { 'Content-Type': MIME['.html'] });
 			}
 
