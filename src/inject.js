@@ -34,13 +34,13 @@ function configBlock(size) {
 	return parts.length ? `<rjs-config style="display:none">${parts.join('')}</rjs-config>\n` : '';
 }
 
-export async function renderDeck(deck, { role = 'deck', fit = true, size = null } = {}) {
+export async function renderDeck(deck, { role = 'deck', fit = true, size = null, token = '' } = {}) {
 	const html = await fs.readFile(deck.absPath, 'utf8');
 
 	const base = `<base href="/lib/${encodePath(deck.relDir)}">`;
 	const bootstrap =
 		`<link rel="stylesheet" href="/_sv/joplin-vars.css">\n` +
-		`<script>window.__SV__=${JSON.stringify({ deckId: deck.id, role, fit })};</script>\n` +
+		`<script>window.__SV__=${JSON.stringify({ deckId: deck.id, role, fit, token })};</script>\n` +
 		`<script src="/_sv/client.js" defer></script>\n`;
 
 	let out = html;

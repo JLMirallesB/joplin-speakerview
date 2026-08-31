@@ -24,7 +24,7 @@ for (let i = 0; i < 40 && !up; i++) {
 if (!up) { console.error('el servidor no arrancó\n' + banner); server.kill(); process.exit(1); }
 
 let failed = 0;
-for (const suite of ['e2e.js', 'speaker.js']) {
+for (const suite of ['e2e.js', 'speaker.js', 'features.js']) {
 	console.log(`\n── ${suite}`);
 	await sleep(1500);   // que la suite anterior suelte sus WebSocket
 	const code = await new Promise((res) => {

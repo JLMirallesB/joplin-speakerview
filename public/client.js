@@ -136,7 +136,8 @@
 
 	function connect() {
 		var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-		ws = new WebSocket(proto + '//' + location.host + '/ws');
+		var q = CFG.token ? '?t=' + encodeURIComponent(CFG.token) : '';
+		ws = new WebSocket(proto + '//' + location.host + '/ws' + q);
 		ws.onopen = function () {
 			send({ t: 'hello', role: ROLE });
 			var q = queue; queue = [];
@@ -151,6 +152,12 @@
 			// y la ventana de presentación ignora "state" a propósito: sólo así no
 			// se realimenta su propio movimiento.
 			if (msg.t === 'exec' && !isMirror) call(msg.method, msg.args);
+			else if (msg.t === 'reload') location.reload();
+			else if (msg.t === 'restore' && !isMirror) {
+				// Volver donde estábamos antes de la recarga. Se aplica con un
+				// respiro para que reveal haya terminado de montarse.
+				setTimeout(function () { call('slide', [msg.h, msg.v, msg.f]); }, 250);
+			}
 		};
 		ws.onclose = function () { ws = null; setTimeout(connect, 1000); };
 		ws.onerror = function () { try { ws.close(); } catch (e) {} };

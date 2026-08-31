@@ -36,6 +36,7 @@
 				render();
 			} else if (msg.t === 'outline') {
 				outline = msg.outline;
+				if (gridOpen) buildGrid();
 				render();
 			} else if (msg.t === 'presence') {
 				decksOnline = msg.decks;
@@ -201,7 +202,7 @@
 		}
 
 		$('blackout').classList.toggle('on', !!state.paused);
-		$('overview').classList.toggle('on', !!state.overview);
+		markCurrent();
 		$('timer-toggle').textContent = state.timer.running ? 'Pausar' : 'Iniciar';
 		if (document.activeElement !== $('target')) {
 			$('target').value = state.timer.targetMin || '';
@@ -239,11 +240,98 @@
 
 	/* --------------------------------------------------------------- controles */
 
+	/* ------------------------------------------------------------------ rejilla */
+
+	var gridOpen = false;
+
+	function buildGrid() {
+		var list = $('grid-list');
+		if (!outline) { list.textContent = 'Esperando a la presentación…'; return; }
+		list.textContent = '';
+		outline.forEach(function (s, i) {
+			var cell = document.createElement('button');
+			cell.className = 'cell';
+			cell.dataset.h = s.h;
+			cell.dataset.v = s.v;
+
+			var num = document.createElement('span');
+			num.className = 'num';
+			num.textContent = i + 1;
+
+			var t = document.createElement('span');
+			t.className = 't' + (s.title ? '' : ' untitled');
+			t.textContent = s.title || 'sin título';
+
+			var marks = document.createElement('span');
+			marks.className = 'marks';
+			if (s.notes) {
+				var d = document.createElement('span');
+				d.className = 'dot notes'; d.title = 'tiene notas';
+				marks.appendChild(d);
+			}
+			if (s.fragCount > 0) {
+				var f = document.createElement('span');
+				f.className = 'dot frag'; f.title = s.fragCount + ' pasos';
+				marks.appendChild(f);
+			}
+
+			cell.appendChild(num); cell.appendChild(t); cell.appendChild(marks);
+			cell.onclick = function () {
+				cmd('goto', { args: [s.h, s.v, -1] });
+				toggleGrid(false);
+			};
+			list.appendChild(cell);
+		});
+		markCurrent();
+	}
+
+	function markCurrent() {
+		if (!state) return;
+		var cells = $('grid-list').querySelectorAll('.cell');
+		for (var i = 0; i < cells.length; i++) {
+			var c = cells[i];
+			var on = +c.dataset.h === state.h && +c.dataset.v === state.v;
+			c.classList.toggle('current', on);
+			if (on && gridOpen) c.scrollIntoView({ block: 'nearest' });
+		}
+	}
+
+	function toggleGrid(open) {
+		gridOpen = open === undefined ? !gridOpen : open;
+		$('grid').hidden = !gridOpen;
+		if (gridOpen) buildGrid();
+	}
+
+	/* ----------------------------------------------------------------- móvil */
+
+	var qrLoaded = false;
+
+	function showQR() {
+		$('qr').hidden = false;
+		if (qrLoaded) return;
+		qrLoaded = true;
+		fetch('/api/remote-url?deck=' + encodeURIComponent(DECK.id))
+			.then(function (r) { return r.json(); })
+			.then(function (d) {
+				if (!d.url) {
+					$('qr-note').textContent = 'No encuentro una dirección de red en este equipo. ¿Wifi apagada?';
+					return;
+				}
+				$('qr-img').innerHTML = d.svg;
+				$('qr-url').textContent = d.url;
+				$('qr-note').textContent = 'El móvil tiene que estar en la misma wifi. El enlace lleva un token: quien no lo tenga no puede pasar diapositivas.';
+			})
+			.catch(function () { $('qr-note').textContent = 'No he podido generar el código.'; });
+	}
+
 	function wire() {
 		$('next').onclick = function () { cmd('next'); };
 		$('prev').onclick = function () { cmd('prev'); };
 		$('blackout').onclick = function () { cmd('blackout'); };
-		$('overview').onclick = function () { cmd('overview'); };
+		$('grid-open').onclick = function () { toggleGrid(); };
+		$('grid-close').onclick = function () { toggleGrid(false); };
+		$('qr-open').onclick = showQR;
+		$('qr-close').onclick = function () { $('qr').hidden = true; };
 		$('timer-toggle').onclick = function () { cmd('timer', { action: 'toggle' }); };
 		$('timer-reset').onclick = function () { cmd('timer', { action: 'reset' }); };
 		$('target').onchange = function () {
@@ -263,10 +351,11 @@
 		document.addEventListener('keydown', function (e) {
 			if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
 			var k = e.key;
-			if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'n') { e.preventDefault(); cmd('next'); }
+			if (k === 'Escape') { e.preventDefault(); toggleGrid(false); $('qr').hidden = true; }
+			else if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'n') { e.preventDefault(); cmd('next'); }
 			else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'p') { e.preventDefault(); cmd('prev'); }
 			else if (k === 'b' || k === '.') { e.preventDefault(); cmd('blackout'); }
-			else if (k === 'g' || k === 'o') { e.preventDefault(); cmd('overview'); }
+			else if (k === 'g' || k === 'o') { e.preventDefault(); toggleGrid(); }
 			else if (k === 't') { e.preventDefault(); cmd('timer', { action: 'toggle' }); }
 			else if (k === 'r') { e.preventDefault(); cmd('timer', { action: 'reset' }); }
 		});

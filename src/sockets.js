@@ -1,5 +1,6 @@
 import { WebSocketServer } from 'ws';
 import { createState, snapshot, applyReport, applyTimer } from './state.js';
+import { isLocal, tokenOk } from './auth.js';
 
 /**
  * Roles:
@@ -11,7 +12,7 @@ import { createState, snapshot, applyReport, applyTimer } from './state.js';
  *           presentación esté cerrada.
  *   speaker / remote  mandan "cmd" y pintan "state".
  */
-export function attachSockets(server, { decks }) {
+export function attachSockets(server, { decks, token = '' }) {
 	const wss = new WebSocketServer({ server, path: '/ws' });
 	const states = new Map(decks.map((d) => [d.id, createState(d.id)]));
 	const clients = new Set();
@@ -36,6 +37,15 @@ export function attachSockets(server, { decks }) {
 	}
 
 	wss.on('connection', (ws, req) => {
+		// Mismo criterio que en HTTP: desde esta máquina no hace falta token;
+		// desde la red, sí. Si no, cualquiera de la wifi pasa diapositivas.
+		let url;
+		try { url = new URL(req.url, 'http://localhost'); } catch { return ws.close(); }
+		if (!isLocal(req) && !tokenOk(url.searchParams.get('t') || '', token)) {
+			try { ws.send(JSON.stringify({ t: 'denied' })); } catch { /* ya cerrado */ }
+			return ws.close();
+		}
+
 		const client = { ws, deckId: null, role: 'speaker' };
 		clients.add(client);
 
@@ -52,6 +62,12 @@ export function attachSockets(server, { decks }) {
 					const st = states.get(client.deckId);
 					ws.send(JSON.stringify({ t: 'state', ...snapshot(st) }));
 					if (st.outline) ws.send(JSON.stringify({ t: 'outline', outline: st.outline }));
+					// Tras una recarga la ventana vuelve a la primera diapositiva.
+					// "restore" es la única orden que obedece nada más entrar; los
+					// "state" normales los ignora, que es lo que evita el eco.
+					if (client.role === 'deck' && st.rev > 0) {
+						ws.send(JSON.stringify({ t: 'restore', h: st.h, v: st.v, f: st.f }));
+					}
 					broadcastPresence(client.deckId);
 					break;
 				}
@@ -105,5 +121,19 @@ export function attachSockets(server, { decks }) {
 		}
 	}
 
-	return { wss, states };
+	/*
+	 * Recarga tras reexportar. El outline se descarta: la presentación nueva
+	 * puede tener otras diapositivas. La posición se conserva y se restaura
+	 * abajo, cuando la ventana vuelve a decir hola.
+	 */
+	function reloadAll() {
+		for (const s of states.values()) s.outline = null;
+		for (const c of clients) {
+			if (c.deckId && (c.role === 'deck' || c.role === 'mirror')) {
+				try { c.ws.send(JSON.stringify({ t: 'reload' })); } catch { /* se cerró */ }
+			}
+		}
+	}
+
+	return { wss, states, reloadAll };
 }

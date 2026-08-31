@@ -5,6 +5,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderDeck } from './inject.js';
 import { FONT_NAME } from './fonts.js';
+import { allowed, isLocal } from './auth.js';
+import QRCode from 'qrcode';
 
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 
@@ -85,7 +87,8 @@ async function servePage(res, name, extra = {}) {
 	send(res, 200, html, { 'Content-Type': MIME['.html'] });
 }
 
-export function createServer({ root, decks, fontDir = null, themeCss = null, fit = true, size = null }) {
+export function createServer({ root, decks, fontDir = null, themeCss = null, fit = true, size = null, token = '', lanUrl = null }) {
+	// eslint: lanUrl se reasigna desde setLanUrl
 	const byId = new Map(decks.map((d) => [d.id, d]));
 
 	/*
@@ -107,7 +110,25 @@ export function createServer({ root, decks, fontDir = null, themeCss = null, fit
 		const p = url.pathname;
 
 		try {
+			// Las páginas que mandan sobre la presentación piden token si la
+			// petición no viene de esta misma máquina. Los assets quedan
+			// abiertos: sin una página que los use no sirven de nada.
+			const guarded = p === '/' || /^\/(present|speaker|remote)\//.test(p) || p.startsWith('/api/');
+			if (guarded && !allowed(req, url, token)) {
+				return send(res, 403, 'Hace falta el enlace con el token. Escanea el QR de la vista del ponente.');
+			}
+
 			if (p === '/') return servePage(res, 'picker.html', { decks: decks.map(publicDeck) });
+
+			if (p === '/api/remote-url') {
+				const m2 = /deck=([A-Za-z0-9_-]+)/.exec(url.search);
+				const id = m2 ? m2[1] : decks[0].id;
+				if (!lanUrl) return sendJSON(res, 200, { url: null });
+				const target = `${lanUrl}/remote/${id}?t=${token}`;
+				const svg = await QRCode.toString(target, { type: 'svg', margin: 1, width: 220,
+					color: { dark: '#e7eaf0', light: '#00000000' } });
+				return sendJSON(res, 200, { url: target, svg });
+			}
 
 			if (p === '/api/library') return sendJSON(res, 200, { decks: decks.map(publicDeck) });
 
@@ -116,7 +137,7 @@ export function createServer({ root, decks, fontDir = null, themeCss = null, fit
 				const deck = byId.get(m[1]);
 				if (!deck) return send(res, 404, 'Presentación desconocida');
 				const role = url.searchParams.get('sv') === 'mirror' ? 'mirror' : 'deck';
-				const html = await renderDeck(deck, { role, fit, size });
+				const html = await renderDeck(deck, { role, fit, size, token: isLocal(req) ? '' : token });
 				return send(res, 200, html, { 'Content-Type': MIME['.html'] });
 			}
 
@@ -124,6 +145,15 @@ export function createServer({ root, decks, fontDir = null, themeCss = null, fit
 				const deck = byId.get(m[1]);
 				if (!deck) return send(res, 404, 'Presentación desconocida');
 				return servePage(res, 'speaker.html', { deck: publicDeck(deck) });
+			}
+
+			if ((m = /^\/remote\/([A-Za-z0-9_-]+)$/.exec(p))) {
+				const deck = byId.get(m[1]);
+				if (!deck) return send(res, 404, 'Presentación desconocida');
+				return servePage(res, 'remote.html', {
+					deck: publicDeck(deck),
+					token: isLocal(req) ? '' : token,
+				});
 			}
 
 			if (p.startsWith('/lib/')) {
@@ -154,7 +184,9 @@ export function createServer({ root, decks, fontDir = null, themeCss = null, fit
 		}
 	});
 
-	return { server, byId };
+	// El puerto no se conoce hasta que el servidor escucha, y la URL de red se
+	// necesita para el QR.
+	return { server, byId, setLanUrl: (u) => { lanUrl = u; } };
 }
 
 const publicDeck = (d) => ({ id: d.id, title: d.title, notebook: d.notebook, label: d.label });

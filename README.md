@@ -21,8 +21,14 @@ otra ventana sigue.
 - Cronómetro, reloj y duración objetivo (ámbar al 80 %, rojo al pasarse).
 - Posición (`42 / 53`) y paso dentro de la diapositiva (`paso 2 / 4`).
 
+- **Rejilla** para saltar a cualquier diapositiva. Vive dentro de tu ventana, no
+  en el proyector: el público no ve el recorrido. Cada celda lleva su número, su
+  título, y un punto azul si tiene notas o ámbar si tiene pasos.
+- **Mando para el móvil**: el botón «Móvil» saca un QR. Se abre en Safari, en la
+  misma wifi, y pasa diapositivas, apaga la pantalla y enseña las notas.
+
 Atajos: `→` `espacio` avanzar · `←` retroceder · `B` negro · `G` rejilla ·
-`T` cronómetro · `R` reiniciar.
+`T` cronómetro · `R` reiniciar · `Esc` cerrar.
 
 ## Uso
 
@@ -37,6 +43,9 @@ joplin-speakerview <ruta> [opciones]
       --no-open No abrir el navegador
       --fonts   Carpeta con las fuentes del plugin
       --no-fit  No encoger el texto cuyas palabras no caben
+      --size    Lienzo: 16:9, 16:10 o 1600x900 (ver más abajo)
+      --margin  Margen alrededor del lienzo (reveal usa 0.04)
+      --no-watch  No recargar al reexportar desde Joplin
 ```
 
 En la ventana de la presentación, **`F` la pone a pantalla completa** (atajo de
@@ -45,6 +54,29 @@ navegador exige un gesto del usuario en esa misma ventana.
 
 Si encuentra varias presentaciones te las lista con su ruta de libreta
 (*FORMACIONES › Pla Millora › Mod 1*) para que elijas.
+
+## El mando del móvil
+
+El botón «Móvil» de la vista del ponente saca un QR. El teléfono tiene que estar
+en la misma wifi.
+
+Como el servidor escucha en toda la red y una wifi de centro educativo tiene
+mucha gente, **las peticiones que no vienen de esta misma máquina necesitan un
+token**, que va en el enlace del QR y se genera nuevo en cada arranque. Vale
+tanto para las páginas como para el WebSocket: sin él no se pasan diapositivas.
+
+Un aviso: la pantalla del móvil **se apagará sola**. `navigator.wakeLock` exige
+contexto seguro y esto va por `http://` en la red local. Pon el bloqueo
+automático en «Nunca» mientras presentas; el propio mando te lo recuerda.
+
+## Recarga al reexportar
+
+La aplicación vigila la carpeta. Cuando reexportas desde Joplin, las ventanas se
+recargan y **vuelven a la diapositiva en la que estabas**: el servidor guarda la
+posición y se la devuelve a la ventana cuando vuelve a conectarse. El outline se
+descarta, porque la presentación nueva puede tener otras diapositivas.
+
+Se desactiva con `--no-watch`.
 
 ## Cómo funciona
 
@@ -177,11 +209,19 @@ de DevTools. Necesita una presentación exportada; por defecto busca en
 node test/run.js /ruta/a/mis/presentaciones
 ```
 
+## Herramientas
+
+```bash
+node test/overflow.js       # texto que se partiría por la mitad
+node test/screenshot.js salida.png [boton]   # captura de la vista del ponente
+```
+
 ## Estado
 
 Hecho: sincronía en los dos sentidos, notas, miniaturas actual y siguiente con
-pasos de fragments, cronómetro, negro, y el arreglo del fondo.
+pasos de fragments, cronómetro, negro, rejilla de salto, mando para el móvil con
+QR y token, recarga al reexportar, las fuentes que faltaban y el fondo oscuro.
 
-Pendiente: rejilla para saltar de diapositiva (el botón está, falta la vista),
-mando para el móvil por la wifi con QR, y recarga automática al reexportar
-desde Joplin.
+Pendiente: la segunda pasada de CSS, y un proveedor que hable directamente con
+la API de Joplin en vez de leer la carpeta exportada (`src/provider.js` es el
+hueco previsto).

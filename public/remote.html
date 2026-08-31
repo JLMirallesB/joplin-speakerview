@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14161a">
+<title>Mando</title>
+<style>
+	:root { --bg:#14161a; --panel:#1c1f25; --panel-2:#23272f; --line:#333a45;
+	        --fg:#e7eaf0; --dim:#8d96a5; --accent:#6ea8fe; --ok:#5dd39e; --bad:#f2666b; }
+	* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+	html, body {
+		margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
+		font:16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+		user-select:none; -webkit-user-select:none; overscroll-behavior:none;
+	}
+	#app { display:flex; flex-direction:column; height:100%;
+	       padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+
+	#bar { display:flex; align-items:center; gap:10px; padding:10px 14px;
+	       background:var(--panel); border-bottom:1px solid var(--line); }
+	#pos { font-variant-numeric:tabular-nums; font-weight:700; }
+	#frag { color:var(--dim); font-size:14px; }
+	#link { margin-left:auto; font-size:13px; padding:3px 9px; border-radius:999px; background:#3a2226; color:var(--bad); }
+	#link.on { background:#1f3329; color:var(--ok); }
+
+	#title { padding:10px 14px 4px; font-weight:600; font-size:15px; }
+	#notes { flex:1; overflow-y:auto; padding:0 14px 12px; font-size:17px; line-height:1.55;
+	         -webkit-overflow-scrolling:touch; }
+	#notes.empty::before { content:"Sin notas"; color:#5c6472; font-style:italic; font-size:15px; }
+	#notes.hidden { display:none; }
+
+	#pad { display:flex; gap:10px; padding:10px 12px 14px; }
+	#pad button {
+		flex:1; font:inherit; font-size:30px; color:var(--fg); background:var(--panel-2);
+		border:1px solid var(--line); border-radius:16px; padding:24px 0; touch-action:manipulation;
+	}
+	#pad button:active { background:#313743; }
+	#next { flex:2 !important; background:#24405f !important; border-color:#35597f !important; }
+
+	#tools { display:flex; gap:8px; padding:0 12px 12px; }
+	#tools button {
+		flex:1; font:inherit; font-size:14px; color:var(--fg); background:var(--panel-2);
+		border:1px solid var(--line); border-radius:10px; padding:11px 0; touch-action:manipulation;
+	}
+	#tools button.on { background:#24405f; border-color:var(--accent); }
+	#blackout.on { background:#3a2226; border-color:var(--bad); color:var(--bad); }
+	.hint { color:#6d7686; font-size:11px; text-align:center; padding:0 12px 8px; }
+</style>
+<script>/*__SV_BOOT__*/</script>
+</head>
+<body>
+<div id="app">
+	<div id="bar">
+		<span id="pos">— / —</span>
+		<span id="frag"></span>
+		<span id="link">conectando</span>
+	</div>
+	<div id="title"></div>
+	<article id="notes"></article>
+	<div id="pad">
+		<button id="prev" aria-label="Atrás">◀</button>
+		<button id="next" aria-label="Adelante">▶</button>
+	</div>
+	<div id="tools">
+		<button id="blackout">Negro</button>
+		<button id="toggle-notes">Ocultar notas</button>
+		<button id="timer">Cronómetro</button>
+	</div>
+	<div class="hint" id="hint"></div>
+</div>
+<script src="/_sv/remote.js"></script>
+</body>
+</html>

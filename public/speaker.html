@@ -58,8 +58,29 @@
 		<button id="prev" title="Atrás (←)">◀</button>
 		<button id="next" class="primary" title="Adelante (→ o espacio)">▶</button>
 		<button id="blackout" title="Pantalla en negro (B)">Negro</button>
-		<button id="overview" title="Rejilla de diapositivas (G)">Rejilla</button>
+		<button id="grid-open" title="Saltar a una diapositiva (G)">Rejilla</button>
+		<button id="qr-open" title="Mando para el móvil">Móvil</button>
 	</footer>
+
+	<div id="qr" hidden>
+		<div id="qr-card">
+			<strong>Mando para el móvil</strong>
+			<div id="qr-img"></div>
+			<div id="qr-url"></div>
+			<p class="hint" id="qr-note"></p>
+			<button id="qr-close">Cerrar</button>
+		</div>
+	</div>
+
+	<div id="grid" hidden>
+		<div id="grid-head">
+			<strong>Saltar a una diapositiva</strong>
+			<span class="hint">Esta vista no sale por el proyector</span>
+			<div class="spacer" style="flex:1"></div>
+			<button id="grid-close">Cerrar (Esc)</button>
+		</div>
+		<div id="grid-list"></div>
+	</div>
 
 </div>
 <script src="/_sv/speaker.js"></script>

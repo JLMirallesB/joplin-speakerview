@@ -13,6 +13,10 @@
 
 * { box-sizing: border-box; }
 
+/* Un selector de id gana a la regla [hidden] del navegador, así que sin esto
+   los paneles con display propio (#grid, #qr) se quedarían siempre visibles. */
+[hidden] { display: none !important; }
+
 html, body {
 	margin: 0; height: 100%; overflow: hidden;
 	background: var(--bg); color: var(--fg);
@@ -134,3 +138,56 @@ input[type="number"] {
 	border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; width: 62px;
 }
 .hint { color: #6d7686; font-size: 12px; }
+
+/* ------------------------------------------------------------------ rejilla */
+
+/* Vive dentro de la vista del ponente: saltar de diapositiva no debe pasearle
+   al público el recorrido, que es justo lo que hace la vista general de reveal. */
+#grid {
+	position: fixed; inset: 0; z-index: 20;
+	background: var(--bg); display: flex; flex-direction: column;
+}
+#grid-head {
+	display: flex; align-items: center; gap: 12px;
+	padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
+}
+#grid-list {
+	flex: 1; overflow-y: auto; padding: 16px;
+	display: grid; gap: 10px;
+	grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+	align-content: start;
+}
+.cell {
+	display: flex; gap: 10px; align-items: flex-start; text-align: left;
+	padding: 10px 12px; min-height: 62px;
+	background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+	cursor: pointer; color: var(--fg); font: inherit;
+}
+.cell:hover { background: var(--panel-2); border-color: #4a556a; }
+.cell .num {
+	color: var(--dim); font-variant-numeric: tabular-nums; font-size: 12px;
+	min-width: 22px; padding-top: 2px;
+}
+.cell .t { flex: 1; font-size: 13.5px; line-height: 1.35; overflow: hidden; }
+.cell .t.untitled { color: #6d7686; font-style: italic; }
+.cell .marks { display: flex; flex-direction: column; gap: 3px; padding-top: 3px; }
+.cell .dot { width: 6px; height: 6px; border-radius: 50%; background: #3d4550; }
+.cell .dot.notes { background: var(--accent); }
+.cell .dot.frag { background: var(--warn); }
+.cell.current { border-color: var(--ok); background: #1b2a24; }
+.cell.current .num { color: var(--ok); font-weight: 700; }
+
+/* --------------------------------------------------------------------- QR */
+
+#qr {
+	position: fixed; inset: 0; z-index: 30;
+	background: rgba(10, 12, 15, .82); display: grid; place-items: center;
+}
+#qr-card {
+	background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+	padding: 22px 26px; text-align: center; max-width: 330px;
+}
+#qr-img { margin: 16px auto 10px; width: 220px; height: 220px; }
+#qr-img svg { width: 100%; height: 100%; }
+#qr-url { font-size: 12px; color: var(--dim); word-break: break-all; margin-bottom: 10px; }
+#qr-card .hint { display: block; margin: 0 0 14px; }

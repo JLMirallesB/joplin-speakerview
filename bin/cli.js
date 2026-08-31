@@ -5,6 +5,8 @@ import { openLibrary } from '../src/library.js';
 import { createServer } from '../src/server.js';
 import { attachSockets } from '../src/sockets.js';
 import { findFontDir, countFonts, findJoplinTheme } from '../src/fonts.js';
+import { watchLibrary } from '../src/watch.js';
+import { newToken } from '../src/auth.js';
 
 /* "16:9" mantiene el alto de reveal y ensancha; "1600x900" fija ambos. */
 function parseSize(v) {
@@ -20,7 +22,7 @@ function parseSize(v) {
 }
 
 function parseArgs(argv) {
-	const opts = { target: null, port: 7777, host: '0.0.0.0', open: true, fit: true };
+	const opts = { target: null, port: 7777, host: '0.0.0.0', open: true, fit: true, watch: true };
 	for (let i = 0; i < argv.length; i++) {
 		const a = argv[i];
 		if (a === '--port' || a === '-p') opts.port = parseInt(argv[++i], 10);
@@ -30,6 +32,7 @@ function parseArgs(argv) {
 		else if (a === '--no-fit') opts.fit = false;
 		else if (a === '--size') opts.size = parseSize(argv[++i]);
 		else if (a === '--margin') opts.margin = parseFloat(argv[++i]);
+		else if (a === '--no-watch') opts.watch = false;
 		else if (a === '-h' || a === '--help') opts.help = true;
 		else if (!a.startsWith('-')) opts.target = a;
 	}
@@ -55,6 +58,7 @@ joplin-speakerview — speaker view para presentaciones reveal.js exportadas de 
                 Por defecto reveal usa 960x700 (4:2,9), que en una pantalla
                 16:9 deja un 26 % del ancho sin usar.
       --margin  Margen alrededor del lienzo (reveal usa 0.04)
+      --no-watch  No recargar las ventanas al reexportar desde Joplin
   -h, --help    Esta ayuda
 `;
 
@@ -100,12 +104,16 @@ try {
 	const themeCss = opts.fonts ? null : await findJoplinTheme();
 	const size = opts.size || (opts.margin !== undefined ? {} : null);
 	if (size && opts.margin !== undefined) size.margin = opts.margin;
-	const { server } = createServer({ root, decks, fontDir, themeCss, fit: opts.fit, size });
-	attachSockets(server, { decks });
+	const token = newToken();
+	const lan = lanAddress();
+	const server0 = createServer({ root, decks, fontDir, themeCss, fit: opts.fit, size, token,
+		lanUrl: null });   // la URL de red necesita el puerto, que aún no sabemos
+	const { server } = server0;
+	const sockets = attachSockets(server, { decks, token });
 
 	const port = await listen(server, opts.port, opts.host);
 	const local = `http://localhost:${port}`;
-	const lan = lanAddress();
+	if (lan) server0.setLanUrl(`http://${lan}:${port}`);
 
 	console.log(`\n  joplin-speakerview`);
 	console.log(`  biblioteca   ${root}`);
@@ -113,7 +121,7 @@ try {
 	const nFonts = await countFonts(fontDir);
 	console.log(`  fuentes      ${nFonts ? `${nFonts} de la caché de Joplin` : 'NO ENCONTRADAS — los títulos saldrán en Helvetica'}`);
 	console.log(`  local        ${local}`);
-	if (lan) console.log(`  en la red    http://${lan}:${port}`);
+	if (lan) console.log(`  en la red    http://${lan}:${port}  (el mando del móvil, con su token, sale del botón «Móvil»)`);
 
 	if (initialId) {
 		const deck = decks.find((d) => d.id === initialId);
@@ -127,6 +135,14 @@ try {
 	} else {
 		console.log(`\n  Varias presentaciones: elige en ${local}\n`);
 		if (opts.open) openBrowser(local);
+	}
+
+	if (opts.watch) {
+		const w = watchLibrary(root, () => {
+			console.log(`  · reexportación detectada, recargando`);
+			sockets.reloadAll();
+		});
+		if (w.error) console.log(`  aviso        no puedo vigilar la carpeta (${w.error.code})`);
 	}
 
 	console.log(`  Ctrl-C para parar.\n`);
