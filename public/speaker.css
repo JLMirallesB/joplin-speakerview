@@ -25,9 +25,9 @@ html, body {
 
 #app {
 	display: grid;
-	grid-template-columns: minmax(320px, 37%) 1fr;
+	grid-template-columns: var(--thumbs-w, minmax(320px, 37%)) 7px 1fr;
 	grid-template-rows: auto 1fr auto;
-	grid-template-areas: "top top" "thumbs notes" "bar bar";
+	grid-template-areas: "top top top" "thumbs split notes" "bar bar bar";
 	height: 100%;
 }
 
@@ -83,11 +83,23 @@ a.pill.link:hover { background: #2c313a; color: #fff; }
 }
 #thumb-next.at-end #next-empty { display: grid; }
 
+/* El separador entre miniaturas y notas. speaker.js escribe --thumbs-w. */
+#split {
+	grid-area: split; cursor: col-resize; position: relative;
+	border-left: 1px solid var(--line); touch-action: none;
+}
+#split::after {
+	content: ""; position: absolute; top: 50%; left: 1px; width: 3px; height: 42px;
+	margin-top: -21px; border-radius: 2px; background: #3d4550;
+}
+#split:hover::after, body.resizing #split::after { background: var(--accent); }
+body.resizing { cursor: col-resize; user-select: none; }
+
 /* ----------------------------------------------------------------------- notas */
 
 #notes-pane {
 	grid-area: notes; display: flex; flex-direction: column;
-	min-height: 0; min-width: 0; border-left: 1px solid var(--line);
+	min-height: 0; min-width: 0;
 }
 #notes-head {
 	display: flex; align-items: baseline; gap: 10px;
@@ -99,6 +111,23 @@ a.pill.link:hover { background: #2c313a; color: #fff; }
 	font-size: var(--notes-size, 21px); line-height: 1.62;
 	max-width: 62ch;   /* leer de un vistazo, no cruzar la pantalla entera */
 }
+/* Los audios de la diapositiva actual. Suenan en la ventana del público. */
+#clips {
+	display: flex; flex-direction: column; gap: 6px;
+	padding: 4px 20px 10px; border-bottom: 1px solid var(--line); margin-bottom: 8px;
+}
+.clip-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 10px; }
+.clip-row button { width: 38px; height: 32px; padding: 0; font-size: 14px; }
+.clip-row.playing button { background: #1f3329; border-color: var(--ok); color: var(--ok); }
+.clip-label { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clip-time { font-size: 13px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.clip-bar {
+	grid-column: 2 / 4; height: 6px; border-radius: 3px; background: var(--panel-2);
+	cursor: pointer; position: relative; overflow: hidden;
+}
+.clip-bar span { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 3px; }
+#clips .hint.warn { color: var(--warn); font-size: 13px; }
+
 #notes p:first-child { margin-top: 0; }
 #notes strong { color: #fff; }
 #notes code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: .9em; }

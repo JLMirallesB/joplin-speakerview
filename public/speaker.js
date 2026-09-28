@@ -38,6 +38,9 @@
 				outline = msg.outline;
 				if (gridOpen) buildGrid();
 				render();
+			} else if (msg.t === 'clipstate') {
+				clipState[msg.i] = msg;
+				renderClips();
 			} else if (msg.t === 'presence') {
 				decksOnline = msg.decks;
 				renderStatus();
@@ -177,6 +180,8 @@
 		var cur = slideAt(h, v);
 		$('slide-title').textContent = cur ? cur.title : '';
 
+		renderClips();
+
 		var notes = $('notes');
 		var html = cur ? cur.notes : '';
 		if (notes.dataset.key !== h + ':' + v) {
@@ -208,6 +213,77 @@
 			$('target').value = state.timer.targetMin || '';
 		}
 		renderTimer();
+	}
+
+	/* ------------------------------------------------------------------ audios */
+
+	/*
+	 * Los audios de la diapositiva actual, para darles al play desde aquí. La
+	 * miniatura no sirve para eso: es una copia muda. Las órdenes van a la
+	 * ventana del público, que es la que suena, y ella devuelve el progreso.
+	 */
+	var clipState = {};
+	var clipsKey = '';
+
+	function fmt(s) {
+		s = Math.max(0, Math.floor(s || 0));
+		return Math.floor(s / 60) + ':' + pad(s % 60);
+	}
+
+	function renderClips() {
+		var box = $('clips');
+		var cur = state && slideAt(state.h, state.v);
+		var clips = cur && cur.clips ? cur.clips : [];
+		box.hidden = !clips.length;
+		if (!clips.length) { clipsKey = ''; box.textContent = ''; return; }
+
+		var key = state.h + ':' + state.v + ':' + clips.length;
+		if (key !== clipsKey) {
+			clipsKey = key;
+			box.textContent = '';
+			clips.forEach(function (c) {
+				var row = document.createElement('div');
+				row.className = 'clip-row';
+				row.dataset.i = c.i;
+				row.innerHTML = '<button title="Reproducir o pausar en la ventana del público">▶</button>' +
+					'<span class="clip-label"></span><span class="clip-time"></span>' +
+					'<div class="clip-bar" title="Clic para saltar a ese punto"><span></span></div>';
+				row.querySelector('.clip-label').textContent = c.label;
+				row.querySelector('button').onclick = function () { cmd('clip', { i: c.i, action: 'toggle' }); };
+				row.querySelector('.clip-bar').onclick = function (e) {
+					var st = clipState[c.i];
+					var ini = c.ini || 0;
+					var fin = c.fin || (st && st.dur) || 0;
+					if (!(fin > ini)) return;
+					var r = this.getBoundingClientRect();
+					var frac = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+					cmd('clip', { i: c.i, action: 'seek', value: ini + frac * (fin - ini) });
+				};
+				box.appendChild(row);
+			});
+			var warn = document.createElement('div');
+			warn.className = 'hint warn';
+			warn.hidden = true;
+			warn.textContent = 'La ventana del público no deja sonar el audio hasta que se haga clic en ella una vez (o se pulse F para pantalla completa).';
+			box.appendChild(warn);
+		}
+
+		var blocked = false;
+		clips.forEach(function (c) {
+			var row = box.querySelector('.clip-row[data-i="' + c.i + '"]');
+			if (!row) return;
+			var st = clipState[c.i] || {};
+			if (st.blocked) blocked = true;
+			var ini = c.ini || 0;
+			var fin = c.fin || st.dur || 0;
+			var t = st.time === undefined ? ini : st.time;
+			var len = fin > ini ? fin - ini : 0;
+			row.classList.toggle('playing', !!st.playing);
+			row.querySelector('button').textContent = st.playing ? '❚❚' : '▶';
+			row.querySelector('.clip-time').textContent = fmt(t - ini) + ' / ' + (len ? fmt(len) : '–:––');
+			row.querySelector('.clip-bar span').style.width = (len ? Math.min(100, Math.max(0, (t - ini) / len * 100)) : 0) + '%';
+		});
+		box.querySelector('.hint.warn').hidden = !blocked;
 	}
 
 	/* -------------------------------------------------------------- cronómetro */
@@ -339,6 +415,8 @@
 			this.blur();
 		};
 
+		wireSplit();
+
 		var size = parseInt(localStorage.getItem('sv-notes-size') || '21', 10);
 		function applySize() {
 			document.documentElement.style.setProperty('--notes-size', size + 'px');
@@ -358,6 +436,52 @@
 			else if (k === 'g' || k === 'o') { e.preventDefault(); toggleGrid(); }
 			else if (k === 't') { e.preventDefault(); cmd('timer', { action: 'toggle' }); }
 			else if (k === 'r') { e.preventDefault(); cmd('timer', { action: 'reset' }); }
+		});
+	}
+
+	/* -------------------------------------------------------------- separador */
+
+	/*
+	 * Arrastrar el separador cambia el ancho de la columna de miniaturas. Se
+	 * guarda en píxeles; las notas nunca bajan de 280 px. El ResizeObserver de
+	 * #thumbs reescala las miniaturas solo.
+	 */
+	function wireSplit() {
+		var split = $('split');
+		var root = document.documentElement;
+
+		function clamp(px) { return Math.max(240, Math.min(window.innerWidth - 280, px)); }
+		function apply(px) {
+			if (px) root.style.setProperty('--thumbs-w', Math.round(clamp(px)) + 'px');
+			else root.style.removeProperty('--thumbs-w');
+		}
+
+		var saved = 0;
+		try { saved = parseInt(localStorage.getItem('sv-thumbs-w') || '0', 10); } catch (e) {}
+		if (saved > 0) apply(saved);
+
+		split.addEventListener('pointerdown', function (e) {
+			e.preventDefault();
+			split.setPointerCapture(e.pointerId);
+			document.body.classList.add('resizing');
+			var left = $('thumbs').getBoundingClientRect().left;
+			function move(ev) { apply(ev.clientX - left); }
+			function up() {
+				split.removeEventListener('pointermove', move);
+				split.removeEventListener('pointerup', up);
+				split.removeEventListener('pointercancel', up);
+				document.body.classList.remove('resizing');
+				var w = $('thumbs').getBoundingClientRect().width;
+				try { localStorage.setItem('sv-thumbs-w', String(Math.round(w))); } catch (e) {}
+			}
+			split.addEventListener('pointermove', move);
+			split.addEventListener('pointerup', up);
+			split.addEventListener('pointercancel', up);
+		});
+
+		split.addEventListener('dblclick', function () {
+			apply(0);
+			try { localStorage.removeItem('sv-thumbs-w'); } catch (e) {}
 		});
 	}
 

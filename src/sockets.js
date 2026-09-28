@@ -97,6 +97,16 @@ export function attachSockets(server, { decks, token = '' }) {
 					break;
 				}
 
+				// Progreso de un audio en la ventana del público, para la
+				// vista del ponente. No toca el estado: es sólo de paso.
+				case 'clipstate': {
+					if (!s || client.role !== 'deck') return;
+					const out = { t: 'clipstate', i: msg.i | 0, playing: !!msg.playing, blocked: !!msg.blocked,
+						time: +msg.time || 0, dur: +msg.dur || 0 };
+					sendTo(peers(s.deckId, 'speaker').concat(peers(s.deckId, 'remote')), out);
+					break;
+				}
+
 				case 'cmd': {
 					if (!s) return;
 					handleCommand(s, msg, client);
@@ -123,6 +133,9 @@ export function attachSockets(server, { decks, token = '' }) {
 			case 'goto':     return sendTo(decksOnline, { t: 'exec', method: 'slide', args: msg.args });
 			case 'blackout': return sendTo(decksOnline, { t: 'exec', method: 'togglePause' });
 			case 'overview': return sendTo(decksOnline, { t: 'exec', method: 'toggleOverview' });
+			case 'clip':
+				if (!['toggle', 'stop', 'seek'].includes(msg.action)) return;
+				return sendTo(decksOnline, { t: 'clip', i: msg.i | 0, action: msg.action, value: +msg.value || 0 });
 			case 'timer':
 				applyTimer(s, msg.action, msg.value);
 				return broadcastState(s.deckId);

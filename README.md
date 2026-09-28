@@ -20,6 +20,10 @@ otra ventana sigue.
   fragments por revelar, enseña el próximo fragment, no la próxima diapositiva.
 - Cronómetro, reloj y duración objetivo (ámbar al 80 %, rojo al pasarse).
 - Posición (`42 / 53`) y paso dentro de la diapositiva (`paso 2 / 4`).
+- Los **audios** de la diapositiva, con play/pausa y barra de progreso. Suenan
+  en la ventana del público (ver *Los audios*).
+- Un **separador** entre miniaturas y notas: arrástralo para ver las
+  miniaturas más grandes. Se recuerda; doble clic lo devuelve a su sitio.
 
 - **Rejilla** para saltar a cualquier diapositiva. Vive dentro de tu ventana, no
   en el proyector: el público no ve el recorrido. Cada celda lleva su número, su
@@ -140,7 +144,14 @@ de presentación:
 - Al cambiar de diapositiva se callan todos.
 
 Las miniaturas de la vista del ponente van en silencio, así que el sonido sale
-sólo por la ventana del público.
+sólo por la ventana del público. Para darle al play sin ir a esa ventana, la
+vista del ponente lista los audios de la diapositiva actual encima de las
+notas: el botón y la barra mandan la orden a la ventana del público, y ésta
+devuelve el progreso.
+
+Un aviso: el navegador no deja sonar un audio en una ventana en la que no se
+ha hecho ni un clic. Basta con uno, o con pulsar `F` para la pantalla completa.
+Si no, la vista del ponente lo avisa.
 
 ## Las fuentes que faltan
 

@@ -98,6 +98,21 @@
 		return out;
 	}
 
+	function clipsOf(el) {
+		var all = [].slice.call(allClips());
+		return [].map.call(el.querySelectorAll('audio[data-sv-ini]'), function (a) {
+			var lab = a.previousElementSibling;
+			var text = lab && lab.classList.contains('sv-clip-label') ? lab.textContent : '';
+			var i = all.indexOf(a);
+			return {
+				i: i,
+				label: (text || '').replace(/\s+/g, ' ').trim() || 'Audio ' + (i + 1),
+				ini: parseFloat(a.getAttribute('data-sv-ini')) || 0,
+				fin: parseFloat(a.getAttribute('data-sv-fin')) || 0,
+			};
+		});
+	}
+
 	function buildOutline(wrapper) {
 		var out = [];
 		var tops = [].slice.call(wrapper.querySelectorAll('.slides > section'));
@@ -116,6 +131,7 @@
 					title: titleOf(slide),
 					notes: notesOf(slide) || stackNotes,
 					fragCount: fi.fragCount,
+					clips: clipsOf(slide),
 				});
 			});
 		});
@@ -152,6 +168,7 @@
 			// y la ventana de presentación ignora "state" a propósito: sólo así no
 			// se realimenta su propio movimiento.
 			if (msg.t === 'exec' && !isMirror) call(msg.method, msg.args);
+			else if (msg.t === 'clip' && !isMirror) clipCommand(msg);
 			else if (msg.t === 'reload') location.reload();
 			else if (msg.t === 'restore' && !isMirror) {
 				pendingRestore = msg;
@@ -356,7 +373,38 @@
 		for (var i = 0; i < all.length; i++) if (all[i] !== except && !all[i].paused) all[i].pause();
 	}
 
+	function clipReport(a, extra) {
+		var i = [].indexOf.call(allClips(), a);
+		if (i < 0) return;
+		var msg = { t: 'clipstate', i: i, playing: !a.paused, time: a.currentTime, dur: a.duration || 0 };
+		if (extra) for (var k in extra) msg[k] = extra[k];
+		send(msg);
+	}
+
+	/* Órdenes de la vista del ponente: el audio suena aquí, no allí. */
+	function clipCommand(msg) {
+		var a = allClips()[msg.i];
+		if (!a) return;
+		if (msg.action === 'stop') return a.pause();
+		if (msg.action === 'seek') {
+			a.currentTime = msg.value;
+			return clipReport(a);
+		}
+		if (!a.paused) return a.pause();
+		var p = a.play();
+		// Sin un clic previo en esta ventana, el navegador no deja sonar
+		// nada que no haya pedido el usuario aquí mismo.
+		if (p && p.catch) p.catch(function () { clipReport(a, { blocked: true }); });
+	}
+
 	function setupClips() {
+		['play', 'pause', 'timeupdate', 'seeked', 'loadedmetadata'].forEach(function (t) {
+			document.addEventListener(t, function (e) {
+				var a = e.target;
+				if (a && a.tagName === 'AUDIO' && a.hasAttribute('data-sv-ini')) clipReport(a);
+			}, true);
+		});
+
 		document.addEventListener('play', function (e) {
 			var a = e.target;
 			if (!a || a.tagName !== 'AUDIO' || !a.hasAttribute('data-sv-ini')) return;
