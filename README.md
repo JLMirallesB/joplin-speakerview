@@ -149,6 +149,9 @@ vista del ponente lista los audios de la diapositiva actual encima de las
 notas: el botón y la barra mandan la orden a la ventana del público, y ésta
 devuelve el progreso.
 
+El mando del móvil lleva la misma lista, debajo de las notas. El minutaje
+cuenta desde el inicio del tramo: un `#t=33,40` se ve como `0:00 / 0:07`.
+
 Un aviso: el navegador no deja sonar un audio en una ventana en la que no se
 ha hecho ni un clic. Basta con uno, o con pulsar `F` para la pantalla completa.
 Si no, la vista del ponente lo avisa.
@@ -264,7 +267,8 @@ node test/screenshot.js salida.png [boton]   # captura de la vista del ponente
 
 Hecho: sincronía en los dos sentidos, notas, miniaturas actual y siguiente con
 pasos de fragments, cronómetro, negro, rejilla de salto, mando para el móvil con
-QR y token, recarga al reexportar, audios reproducibles, las fuentes que faltaban y el fondo oscuro.
+QR y token, recarga al reexportar, audios reproducibles (también desde la
+vista del ponente y el móvil), separador para agrandar las miniaturas, las fuentes que faltaban y el fondo oscuro.
 
 Pendiente: la segunda pasada de CSS, y un proveedor que hable directamente con
 la API de Joplin en vez de leer la carpeta exportada (`src/provider.js` es el

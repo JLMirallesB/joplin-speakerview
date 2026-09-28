@@ -24,6 +24,7 @@
 			if (msg.t === 'denied') { $('link').textContent = 'sin permiso'; $('link').className = ''; return; }
 			if (msg.t === 'state') { state = msg; render(); }
 			else if (msg.t === 'outline') { outline = msg.outline; render(); }
+			else if (msg.t === 'clipstate') { clipState[msg.i] = msg; renderClips(); }
 		};
 		ws.onclose = function () {
 			ws = null;
@@ -61,8 +62,71 @@
 			notes.scrollTop = 0;
 		}
 
+		renderClips();
 		$('blackout').classList.toggle('on', !!state.paused);
 		$('timer').classList.toggle('on', !!state.timer.running);
+	}
+
+	/*
+	 * Los audios de la diapositiva actual, como en la vista del ponente: la
+	 * orden va a la ventana del público y el progreso vuelve de ella. El
+	 * minutaje cuenta desde el inicio del tramo (#t=A,B), no del fichero.
+	 */
+	var clipState = {}, clipsKey = '';
+
+	function fmt(s) { s = Math.max(0, Math.floor(s || 0)); var r = s % 60; return Math.floor(s / 60) + ':' + (r < 10 ? '0' : '') + r; }
+
+	function renderClips() {
+		var box = $('clips');
+		var cur = state && slideAt(state.h, state.v);
+		var clips = cur && cur.clips ? cur.clips : [];
+		box.hidden = !clips.length;
+		if (!clips.length) { clipsKey = ''; box.textContent = ''; return; }
+
+		var key = state.h + ':' + state.v + ':' + clips.length;
+		if (key !== clipsKey) {
+			clipsKey = key;
+			box.textContent = '';
+			clips.forEach(function (c) {
+				var row = document.createElement('div');
+				row.className = 'clip-row';
+				row.dataset.i = c.i;
+				row.innerHTML = '<button aria-label="Reproducir o pausar">▶</button><span class="clip-label"></span>' +
+					'<span class="clip-time"></span><div class="clip-bar"><i><span></span></i></div>';
+				row.querySelector('.clip-label').textContent = c.label;
+				row.querySelector('button').onclick = function () { cmd('clip', { i: c.i, action: 'toggle' }); };
+				row.querySelector('.clip-bar').onclick = function (e) {
+					var st = clipState[c.i];
+					var ini = c.ini || 0, fin = c.fin || (st && st.dur) || 0;
+					if (!(fin > ini)) return;
+					var r = this.getBoundingClientRect();
+					var frac = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+					cmd('clip', { i: c.i, action: 'seek', value: ini + frac * (fin - ini) });
+				};
+				box.appendChild(row);
+			});
+			var warn = document.createElement('div');
+			warn.className = 'warn';
+			warn.hidden = true;
+			warn.textContent = 'Haz un clic en la ventana del público (o pulsa F) para que deje sonar el audio.';
+			box.appendChild(warn);
+		}
+
+		var blocked = false;
+		clips.forEach(function (c) {
+			var row = box.querySelector('.clip-row[data-i="' + c.i + '"]');
+			if (!row) return;
+			var st = clipState[c.i] || {};
+			if (st.blocked) blocked = true;
+			var ini = c.ini || 0, fin = c.fin || st.dur || 0;
+			var t = st.time === undefined ? ini : st.time;
+			var len = fin > ini ? fin - ini : 0;
+			row.classList.toggle('playing', !!st.playing);
+			row.querySelector('button').textContent = st.playing ? '❚❚' : '▶';
+			row.querySelector('.clip-time').textContent = fmt(t - ini) + ' / ' + (len ? fmt(len) : '–:––');
+			row.querySelector('.clip-bar span').style.width = (len ? Math.min(100, Math.max(0, (t - ini) / len * 100)) : 0) + '%';
+		});
+		box.querySelector('.warn').hidden = !blocked;
 	}
 
 	/* La pantalla no debe apagarse a media charla. wakeLock exige contexto
@@ -97,7 +161,7 @@
 		// Deslizar sobre las notas para pasar, sin tener que apuntar a un botón.
 		var x0 = null, y0 = null;
 		document.addEventListener('touchstart', function (e) {
-			if (e.touches.length !== 1) return;
+			if (e.touches.length !== 1 || e.target.closest('#clips')) { x0 = null; return; }
 			x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
 		}, { passive: true });
 		document.addEventListener('touchend', function (e) {
