@@ -34,16 +34,49 @@ function configBlock(size) {
 	return parts.length ? `<rjs-config style="display:none">${parts.join('')}</rjs-config>\n` : '';
 }
 
+/*
+ * En la nota, un audio es un enlace a un recurso de Joplin, y el visor de
+ * Joplin le añade él mismo un reproductor debajo. El exportador deja sólo el
+ * <a>, y el plugin le quita el href y le pone un onclick que abre el fichero en
+ * otra pestaña: en la diapositiva no suena nada.
+ *
+ * Lo cambiamos por un <audio> antes de que el plugin lea el cuerpo. El
+ * fragmento #t=A,B de Joplin se pasa a data-ini/data-fin y lo aplica client.js,
+ * para que cada vez que se pulse play empiece en A y pare en B.
+ */
+const AUDIO_EXT = 'mp3|m4a|wav|ogg|oga|opus|aac|flac';
+const AUDIO_LINK = new RegExp(
+	`<a\\s[^>]*?href=(['"])([^'"]+?\\.(?:${AUDIO_EXT}))(#[^'"]*)?\\1[^>]*>([\\s\\S]*?)</a>`, 'gi');
+
+const escAttr = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+export function audioPlayers(html) {
+	return html.replace(AUDIO_LINK, (_, _q, src, hash, label) => {
+		const t = /(?:^#|&)t=(?:npt:)?([\d.]*)(?:,([\d.]+))?/.exec(hash || '');
+		const ini = t && t[1] ? t[1] : '';
+		const fin = t && t[2] ? t[2] : '';
+		const text = label.replace(/<span class="resource-icon[^"]*"><\/span>/g, '').trim();
+		return `<span class="sv-clip">` +
+			(text ? `<span class="sv-clip-label">${text}</span>` : '') +
+			`<audio controls preload="metadata" src="${escAttr(src)}" data-sv-ini="${ini}" data-sv-fin="${fin}"></audio>` +
+			`</span>`;
+	});
+}
+
+const CLIP_CSS =
+	`<style>.reveal .sv-clip{display:inline-flex;flex-direction:column;align-items:center;gap:.2em;margin:.2em .4em;vertical-align:middle}` +
+	`.reveal .sv-clip-label{font-size:.6em}.reveal .sv-clip audio{max-width:100%}</style>\n`;
+
 export async function renderDeck(deck, { role = 'deck', fit = true, size = null, token = '' } = {}) {
 	const html = await fs.readFile(deck.absPath, 'utf8');
 
 	const base = `<base href="/lib/${encodePath(deck.relDir)}">`;
 	const bootstrap =
-		`<link rel="stylesheet" href="/_sv/joplin-vars.css">\n` +
+		`<link rel="stylesheet" href="/_sv/joplin-vars.css">\n` + CLIP_CSS +
 		`<script>window.__SV__=${JSON.stringify({ deckId: deck.id, role, fit, token })};</script>\n` +
 		`<script src="/_sv/client.js" defer></script>\n`;
 
-	let out = html;
+	let out = audioPlayers(html);
 
 	const headOpen = out.match(/<head[^>]*>/i);
 	if (headOpen) {

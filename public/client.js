@@ -341,6 +341,39 @@
 		});
 	}
 
+	/* ------------------------------------------------------------------ audios */
+
+	/*
+	 * Los <audio> que inject.js pone en lugar de los enlaces de Joplin. Cada
+	 * play arranca en data-sv-ini si está fuera del tramo, y se para al llegar
+	 * a data-sv-fin; sólo suena uno a la vez, y al cambiar de diapositiva se
+	 * callan todos.
+	 */
+	function allClips() { return document.querySelectorAll('.reveal audio[data-sv-ini]'); }
+
+	function stopClips(except) {
+		var all = allClips();
+		for (var i = 0; i < all.length; i++) if (all[i] !== except && !all[i].paused) all[i].pause();
+	}
+
+	function setupClips() {
+		document.addEventListener('play', function (e) {
+			var a = e.target;
+			if (!a || a.tagName !== 'AUDIO' || !a.hasAttribute('data-sv-ini')) return;
+			stopClips(a);
+			var ini = parseFloat(a.getAttribute('data-sv-ini')) || 0;
+			var fin = parseFloat(a.getAttribute('data-sv-fin'));
+			if (a.currentTime < ini || (fin > 0 && a.currentTime >= fin - 0.05)) a.currentTime = ini;
+		}, true);
+
+		document.addEventListener('timeupdate', function (e) {
+			var a = e.target;
+			if (!a || a.tagName !== 'AUDIO') return;
+			var fin = parseFloat(a.getAttribute('data-sv-fin'));
+			if (fin > 0 && a.currentTime >= fin) a.pause();
+		}, true);
+	}
+
 	/* ------------------------------------------------------------------ arranque */
 
 	function whenReveal(cb) {
@@ -360,8 +393,11 @@
 
 	connect();
 	if (isMirror) setupMirror();
+	else setupClips();
 
 	whenReveal(function (wrapper) {
+		if (!isMirror) wrapper.addEventListener('slidechanged', function () { stopClips(null); }, false);
+
 		EVENTS.forEach(function (t) {
 			wrapper.addEventListener(t, function () {
 				fitCurrent(wrapper);

@@ -87,7 +87,7 @@ Se desactiva con `--no-watch`.
 ## Cómo funciona
 
 El HTML exportado **no se modifica**. Se sirve desde disco y la aplicación le
-inyecta tres cosas al vuelo, en memoria:
+inyecta cuatro cosas al vuelo, en memoria:
 
 1. Un `<base>` justo tras `<head>`, para que las rutas relativas del export
    (`pluginAssets/…`, `../../../_resources/…`) resuelvan contra `/lib/`.
@@ -95,6 +95,7 @@ inyecta tres cosas al vuelo, en memoria:
    que el tema `match-joplin` caía al fallback y el fondo salía blanco aunque
    tuvieras Joplin en oscuro. Ver *El fondo blanco*, más abajo.
 3. Un puente de sincronía.
+4. Reproductores en lugar de los enlaces a audio. Ver *Los audios*, más abajo.
 
 ### El puente
 
@@ -121,6 +122,25 @@ triplicado) y montados **siempre a tamaño real de diapositiva**, reducidos con
 `transform: scale()`. Es obligatorio: reveal 5.1 conmuta solo a su modo scroll
 por debajo de `scrollActivationWidth` (435 px), rehace el DOM y la miniatura
 sale en blanco.
+
+## Los audios
+
+En la nota, un audio es un enlace a un recurso de Joplin (`[Suno V1](:/<id>)`,
+o `[tramo](:/<id>#t=33,40)` para un fragmento), y el reproductor que se ve
+debajo lo pone el visor de Joplin, no la nota. El exportador deja sólo el
+enlace, y el plugin además le quita el `href` y lo manda abrir en otra
+pestaña: en la diapositiva no suena nada.
+
+La aplicación cambia cada enlace a un audio (`.mp3`, `.m4a`, `.wav`, `.ogg`…)
+por un `<audio controls>` antes de que el plugin lea la página. En la ventana
+de presentación:
+
+- El fragmento `#t=A,B` se respeta: cada play empieza en A y se para en B.
+- Sólo suena un audio a la vez.
+- Al cambiar de diapositiva se callan todos.
+
+Las miniaturas de la vista del ponente van en silencio, así que el sonido sale
+sólo por la ventana del público.
 
 ## Las fuentes que faltan
 
@@ -233,7 +253,7 @@ node test/screenshot.js salida.png [boton]   # captura de la vista del ponente
 
 Hecho: sincronía en los dos sentidos, notas, miniaturas actual y siguiente con
 pasos de fragments, cronómetro, negro, rejilla de salto, mando para el móvil con
-QR y token, recarga al reexportar, las fuentes que faltaban y el fondo oscuro.
+QR y token, recarga al reexportar, audios reproducibles, las fuentes que faltaban y el fondo oscuro.
 
 Pendiente: la segunda pasada de CSS, y un proveedor que hable directamente con
 la API de Joplin en vez de leer la carpeta exportada (`src/provider.js` es el
