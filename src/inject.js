@@ -63,9 +63,15 @@ export function audioPlayers(html) {
 	});
 }
 
+// El clip va en línea y el <audio> en bloque, para que su ancho se mida contra
+// el párrafo y no contra el rótulo: la nota puede traer su propio CSS con
+// anchos en porcentaje (width: 62%), y dentro de una caja que se ajusta al
+// rótulo se encogería. Por debajo de unos 300 px, además, Chrome esconde la
+// barra de progreso y el minutaje. Los 340 px son sólo el valor por defecto:
+// cualquier regla de la nota tiene más especificidad y manda.
 const CLIP_CSS =
-	`<style>.reveal .sv-clip{display:inline-flex;flex-direction:column;align-items:center;gap:.2em;margin:.2em .4em;vertical-align:middle}` +
-	`.reveal .sv-clip-label{font-size:.6em}.reveal .sv-clip audio{max-width:100%}</style>\n`;
+	`<style>.reveal .sv-clip{display:inline}` +
+	`.reveal .sv-clip audio{display:block;width:340px;max-width:100%;height:40px;margin:.15em 0}</style>\n`;
 
 export async function renderDeck(deck, { role = 'deck', fit = true, size = null, token = '' } = {}) {
 	const html = await fs.readFile(deck.absPath, 'utf8');
