@@ -273,3 +273,22 @@ vista del ponente y el móvil), separador para agrandar las miniaturas, las fuen
 Pendiente: la segunda pasada de CSS, y un proveedor que hable directamente con
 la API de Joplin en vez de leer la carpeta exportada (`src/provider.js` es el
 hueco previsto).
+
+## Autor
+
+**José Luis Miralles Bono** · [jlmirall.es](https://jlmirall.es) · joseluismirallesbono@gmail.com ·
+☕ [Invítame a una horchata](https://ko-fi.com/miralles). Hecho con ayuda de Claude.
+
+## Licencia
+
+© 2026 José Luis Miralles Bono
+
+- **Código:** [GNU AGPL v3](LICENSE).
+- **Contenidos** (documentación): [CC BY-SA 4.0](LICENSE-CONTENIDOS).
+
+**Excepción:** `public/joplin-vars.css` reproduce las variables de tema de [Joplin](https://joplinapp.org),
+que tiene licencia AGPL v3. Las presentaciones las genera el plugin
+[revealjs-integration](https://github.com/personalizedRefrigerator/joplin-plugin-revealjs) con
+[reveal.js](https://revealjs.com) (MIT); este repositorio no incluye su código.
+
+Hasta el 7-11-2026 el `package.json` indicaba licencia MIT; las copias obtenidas antes la conservan.
